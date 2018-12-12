@@ -17,3 +17,4 @@ libtool
 ltmain.sh
 m4
 missing
+*.la
