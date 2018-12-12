@@ -265,6 +265,8 @@ static void write_version_file (global_state_t *, int);
  */
 static void create_threads(global_state_t *g, int base, int top)
 {
+    cpu_set_t mask;
+
     // TBD(11/30/12): We want to insert code providing the option of
     // pinning system workers to cores.
     for (int i = base; i < top; i++) {
@@ -274,6 +276,12 @@ static void create_threads(global_state_t *g, int base, int top)
                                     g->workers[i]);
         if (status != 0)
             __cilkrts_bug("Cilk runtime error: thread creation (%d) failed: %d\n", i, status);
+
+        CPU_ZERO(&mask);
+        CPU_SET(i, &mask);
+        status = pthread_setaffinity_np(&g->sysdep->threads[i], sizeof(mask), &mask);
+        if (status != 0)
+           __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", i, i, status);
     }
 }
 
@@ -315,6 +323,13 @@ void __cilkrts_start_workers(global_state_t *g, int n)
 
             if (status != 0)
                 __cilkrts_bug("Cilk runtime error: thread creation (0) failed: %d\n", status);
+
+            cpu_set_t mask;
+            CPU_ZERO(&mask);
+            CPU_SET(0, &mask);
+            status = pthread_setaffinity_np(&g->sysdep->threads[0], sizeof(mask), &mask);
+            if (status != 0)
+               __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", i, i, status);
             
             // Then the rest of the ones we have to create
             create_threads(g, 1, half_threads);
