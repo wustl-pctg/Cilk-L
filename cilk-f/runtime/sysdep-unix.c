@@ -294,7 +294,7 @@ static void * create_threads_and_work (void * arg)
 {
     global_state_t *g = ((__cilkrts_worker *)arg)->g;
 
-    create_threads(g, g->P/2, g->P-1);
+    create_threads(g, g->P/2, g->P);
     // Let the initial thread know that we're done.
     threads_created = 1;
 
@@ -319,7 +319,7 @@ void __cilkrts_start_workers(global_state_t *g, int n)
             int half_threads = (n+1)/2;
         
             // Create the first thread passing a different thread function, so that it creates threads itself
-            status = pthread_create(&g->sysdep->threads[0], NULL, create_threads_and_work, g->workers[0]);
+            status = pthread_create(&g->sysdep->threads[1], NULL, create_threads_and_work, g->workers[1]);
 
             if (status != 0)
                 __cilkrts_bug("Cilk runtime error: thread creation (0) failed: %d\n", status);
@@ -327,12 +327,12 @@ void __cilkrts_start_workers(global_state_t *g, int n)
             cpu_set_t mask;
             CPU_ZERO(&mask);
             CPU_SET(0, &mask);
-            status = pthread_setaffinity_np(&g->sysdep->threads[0], sizeof(mask), &mask);
+            status = pthread_setaffinity_np(&g->sysdep->threads[1], sizeof(mask), &mask);
             if (status != 0)
-               __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", i, i, status);
+               __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", 1, 1, status);
             
             // Then the rest of the ones we have to create
-            create_threads(g, 1, half_threads);
+            create_threads(g, 2, half_threads);
 
             // Now wait for the first created thread to tell us it's created all of its threads.
             // We could maybe drop this a bit lower and overlap with write_version_file.
@@ -340,7 +340,7 @@ void __cilkrts_start_workers(global_state_t *g, int n)
                 __cilkrts_yield();
 #else
             // Simply create all the threads linearly here.
-            create_threads(g, 0, n);
+            create_threads(g, 1, n+1);
 #endif
     }
     // write the version information to a file if the environment is configured
@@ -370,7 +370,7 @@ void __cilkrts_stop_workers(global_state_t *g)
         signal_node_msg(g->workers[0]->l->signal_node, 1);
     }
 
-        for (i = 0; i < g->P - 1; ++i) {
+        for (i = 1; i < g->P; ++i) {
             int sc_status;
             void *th_status;
 

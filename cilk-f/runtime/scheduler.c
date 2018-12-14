@@ -2666,7 +2666,7 @@ static void __cilkrts_unbind_thread()
 
 void do_suspend_return_from_initial(__cilkrts_worker *w, full_frame *ff, __cilkrts_stack_frame *sf) {
     w->g->exit_frame = ff;
-    ff->sync_master = w->g->workers[w->g->total_workers-1];
+    ff->sync_master = w->g->workers[0];
 
     if (cilkg_decrement_active_workers(w->g) == 0) {
         __cilkrts_push_next_frame(ff->sync_master, ff);
@@ -2715,7 +2715,7 @@ void __cilkrts_c_return_from_initial(__cilkrts_worker *w)
     START_INTERVAL(w, INTERVAL_IN_RUNTIME);
 
     w = __cilkrts_get_tls_worker_fast();
-    if (w != w->g->workers[w->g->total_workers-1] || w->g->active_workers > 1) {
+    if (w != w->g->workers[0] || w->g->active_workers > 1) {
         // TODO: Technically this is safe as nothing else is pointing to it;
         //       however, there really should be a lock around it.
         (*w->l->frame_ff)->join_counter--; // Pushing a frame increments the join counter again, so preemptively undo it.
@@ -3177,7 +3177,7 @@ void __cilkrts_deinit_internal(global_state_t *g)
 #endif
     __cilkrts_dump_cilkrr_stats(stderr);
 
-    w = g->workers[0];
+    w = g->workers[1];
     if (*w->l->frame_ff) {
         __cilkrts_destroy_full_frame(w, *w->l->frame_ff);
         *w->l->frame_ff = 0;
@@ -3193,7 +3193,7 @@ void __cilkrts_deinit_internal(global_state_t *g)
         destroy_worker(g->workers[i]);
 
     // Free memory for all worker blocks which were allocated contiguously
-    __cilkrts_free(g->workers[0]);
+    __cilkrts_free(g->workers[1]);
 
     __cilkrts_free(g->workers);
 
@@ -3213,7 +3213,7 @@ static void wake_runtime(global_state_t *g)
     __cilkrts_worker *root;
     if (g->P > 1) {
         // Send a message to the root node.  The message will propagate.
-        root = g->workers[0];
+        root = g->workers[1];
         CILK_ASSERT(root->l->signal_node);
         signal_node_msg(root->l->signal_node, 1);
     }
@@ -3229,7 +3229,7 @@ static void sleep_runtime(global_state_t *g)
     __cilkrts_worker *root;
     if (g->P > 1) {
         // Send a message to the root node.  The message will propagate.
-        root = g->workers[0];
+        root = g->workers[1];
         CILK_ASSERT(root->l->signal_node);
         signal_node_msg(root->l->signal_node, 0);
     }
@@ -3277,21 +3277,18 @@ static enum schedule_t worker_runnable(__cilkrts_worker *w)
     if (g->work_done)
         return SCHEDULE_EXIT;
 
-    if (0 == w->self) {
+    if (1 == w->self) {
         // This worker is the root node and is the only one that may query the
         // global state to see if there are still any user workers in Cilk.
         if (w->l->steal_failure_count > g->max_steal_failures) {
 
             // In the suspended deque case, we may reach this even
             // when there is only 1 worker.
-            if (w->g->P > 1 && signal_node_should_wait(w->l->signal_node)) {
+            if (signal_node_should_wait(w->l->signal_node)) {
                 return SCHEDULE_WAIT;
             } else {
                 // Reset the steal_failure_count since we have verified that
                 // user workers are still in Cilk.
-                if (w->g->P == 1)
-                    CILK_ASSERT(w->l->suspended_deques.size +
-                                w->l->resumable_deques.size > 0);
                 w->l->steal_failure_count = 0;
             }
         }
@@ -3300,6 +3297,13 @@ static enum schedule_t worker_runnable(__cilkrts_worker *w)
         // This worker has been notified by its parent that it should stop
         // trying to steal.
         return SCHEDULE_WAIT;
+    } else if (w->g->P == 1
+        && w->l->steal_failure_count > g->max_steal_failures) {
+
+        CILK_ASSERT(w->l->suspended_deques.size +
+                    w->l->resumable_deques.size > 0);
+
+        w->l->steal_failure_count = 0;
     }
 
     return SCHEDULE_RUN;
@@ -3349,7 +3353,8 @@ static void init_workers(global_state_t *g)
 
     // Set the workers in the first P - 1 slots to be system workers.
     // Remaining worker structs already have type == 0.
-    for (i = 0; i < g->system_workers; ++i) {
+    printf("System Workers: %d\n", g->system_workers);
+    for (i = 1; i < g->system_workers + 1; ++i) {
         make_worker_system(g->workers[i]);
     }
 }

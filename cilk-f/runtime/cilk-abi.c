@@ -375,7 +375,7 @@ CILK_ABI_VOID __cilkrts_suspend(void)
 	__cilkrts_stack_frame *sf = w->current_stack_frame;
 	if (0 == (sf->flags & CILK_FRAME_LAST) || (sf->flags & CILK_FRAME_UNSYNCHED))
 		return;
-	__cilkrts_worker *root = g->workers[0];
+	__cilkrts_worker *root = g->workers[1];
 	root->l->steal_failure_count = g->max_steal_failures + 1;
 	CILK_ASSERT(root->l->signal_node);
 	signal_node_msg(root->l->signal_node, 0);
@@ -389,7 +389,7 @@ CILK_ABI_VOID __cilkrts_resume(void)
 	global_state_t *g = cilkg_get_global_state();
 	if (NULL == g || g->P < 2)
 		return;
-	__cilkrts_worker *root = g->workers[0];
+	__cilkrts_worker *root = g->workers[1];
 	CILK_ASSERT(root->l->signal_node);
 	signal_node_msg(root->l->signal_node, 1);
 }
@@ -420,7 +420,8 @@ static __cilkrts_worker *find_free_worker(global_state_t *g)
 
 	// Scan the non-system workers looking for one which is free so we can
 	// use it.
-	for (i = g->P - 1; i < g->total_workers; ++i) {
+  // TODO: Kyle, you broke this extra hard
+	for (i = 0; i < g->total_workers; ++i) {
 		w = g->workers[i];
 		CILK_ASSERT(WORKER_SYSTEM != w->l->type);
 		if (w->l->type == WORKER_FREE) {
