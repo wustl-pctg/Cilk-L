@@ -50,8 +50,6 @@ cd -
 
 msg "Suspendable work-stealing runtime built"
 
-# Compile library
-mkdir -p build
 BASE_DIR=$(pwd)
 if [ ! -e config.mk ]; then
     echo "BUILD_DIR=$BASE_DIR/build" >> config.mk
