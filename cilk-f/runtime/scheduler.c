@@ -1709,18 +1709,21 @@ static NORETURN longjmp_into_runtime(__cilkrts_worker *w, scheduling_stack_fcn_t
 static void notify_children(__cilkrts_worker *w, unsigned int msg)
 {
     int child_num;
+    int parent_num = w->self - 1;
     __cilkrts_worker *child;
     int num_sys_workers = w->g->P - 1;
 
     // If worker is "n", then its children are 2n + 1, and 2n + 2.
-    child_num = (w->self << 1) + 1;
+    child_num = (parent_num << 1) + 1;
     if (child_num < num_sys_workers) {
-        child = w->g->workers[child_num];
+        // Worker 0 is now the user worker, so offset by 1
+        child = w->g->workers[child_num+1];
         CILK_ASSERT(child->l->signal_node);
         signal_node_msg(child->l->signal_node, msg);
         child_num++;
         if (child_num < num_sys_workers) {
-            child = w->g->workers[child_num];
+            // Worker 0 is now the user worker, so offset by 1
+            child = w->g->workers[child_num+1];
             CILK_ASSERT(child->l->signal_node);
             signal_node_msg(child->l->signal_node, msg);
         }
@@ -2105,7 +2108,6 @@ static void worker_scheduler_function(__cilkrts_worker *w)
             // this point we are IN_RUNTIME already.
         }
     }
-
 
     // Finish the scheduling loop.
     worker_scheduler_terminate_function(w);
@@ -3163,6 +3165,12 @@ static void make_worker_system(__cilkrts_worker *w) {
     w->l->signal_node = signal_node_create();
 }
 
+static void make_worker_io(__cilkrts_worker *w) {
+    CILK_ASSERT(WORKER_FREE == w->l->type);
+    w->l->type = WORKER_IO;
+    //w->l->signal_node = signal_node_create();
+}
+
 void __cilkrts_deinit_internal(global_state_t *g)
 {
     int i;
@@ -3189,7 +3197,7 @@ void __cilkrts_deinit_internal(global_state_t *g)
     // Destroy any system dependent global state
     __cilkrts_destroy_global_sysdep(g);
 
-    for (i = 0; i < g->total_workers; ++i)
+    for (i = 0; i < g->total_workers*2; ++i)
         destroy_worker(g->workers[i]);
 
     // Free memory for all worker blocks which were allocated contiguously
@@ -3332,30 +3340,34 @@ static void init_workers(global_state_t *g)
     cilk_fiber_pool_set_fiber_limit(&g->fiber_pool,
                                     (g->max_stacks ? g->max_stacks : INT_MAX));
 
+    // TODO: Be more efficient; for now just doubling for IO workers
     g->workers = (__cilkrts_worker **)
-        __cilkrts_malloc(total_workers * sizeof(*g->workers));
+        __cilkrts_malloc(2 * total_workers * sizeof(*g->workers));
 
     // Allocate 1 block of memory for workers to make life easier for tools
     // like Inspector which run multithreaded and need to know the memory
     // range for all the workers that will be accessed in a user's program
     workers_memory = (struct buffered_worker*)
-        __cilkrts_malloc(sizeof(*workers_memory) * total_workers);    
+        __cilkrts_malloc(sizeof(*workers_memory) * total_workers * 2);    
     
     // Notify any tools that care (Cilkscreen and Inspector) that they should
     // ignore memory allocated for the workers
     __cilkrts_cilkscreen_ignore_block(&workers_memory[0],
-                                      &workers_memory[total_workers]);
+                                      &workers_memory[total_workers*2]);
 
     // Initialize worker structs, including unused worker slots.
-    for (i = 0; i < total_workers; ++i) {
+    for (i = 0; i < total_workers*2; ++i) {
         g->workers[i] = make_worker(g, i, &workers_memory[i].w);
     }
 
-    // Set the workers in the first P - 1 slots to be system workers.
+    // Set the workers in the last P - 1 slots to be system workers.
     // Remaining worker structs already have type == 0.
-    printf("System Workers: %d\n", g->system_workers);
-    for (i = 1; i < g->system_workers + 1; ++i) {
+    for (i = 1; i < total_workers; ++i) {
         make_worker_system(g->workers[i]);
+    }
+
+    for (i = total_workers; i < total_workers*2; ++i) {
+        make_worker_io(g->workers[i]);
     }
 }
 

@@ -136,7 +136,8 @@ void __cilkrts_init_global_sysdep(global_state_t *g)
     
     // TBD: Should this value be g->total_workers, or g->P?
     //      Need to check what we are using this field for.
-    g->sysdep->threads = __cilkrts_malloc(sizeof(pthread_t) * g->total_workers);
+    // TODO: Be more efficient; for now just doubling to account for potential IO threads
+    g->sysdep->threads = __cilkrts_malloc(sizeof(pthread_t) * g->total_workers * 2);
     CILK_ASSERT(g->sysdep->threads);
 
     return;
@@ -266,6 +267,8 @@ static void write_version_file (global_state_t *, int);
 static void create_threads(global_state_t *g, int base, int top)
 {
     cpu_set_t mask;
+    int multiplier = 1;
+    if (g->io_mode == IO_MODE__DEDICATED_CORE) multiplier = 2;
 
     // TBD(11/30/12): We want to insert code providing the option of
     // pinning system workers to cores.
@@ -278,10 +281,42 @@ static void create_threads(global_state_t *g, int base, int top)
             __cilkrts_bug("Cilk runtime error: thread creation (%d) failed: %d\n", i, status);
 
         CPU_ZERO(&mask);
-        CPU_SET(i, &mask);
+        CPU_SET(i*multiplier, &mask);
         status = pthread_setaffinity_np(&g->sysdep->threads[i], sizeof(mask), &mask);
         if (status != 0)
-           __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", i, i, status);
+           __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", i, i*multiplier, status);
+    }
+}
+
+static void scheduler_thread_proc_for_io_worker(void* unused) {
+  printf("Ran an io worker thread!\n");
+}
+
+static void create_io_threads(global_state_t *g, int base, int top)
+{
+    cpu_set_t mask;
+    int multiplier = 1;
+    int offset = 0;
+    if (g->io_mode == IO_MODE__DEDICATED_CORE) {
+      multiplier = 2;
+      offset = 1;
+    } else if (g->io_mode == IO_MODE__NORMAL) {
+      return; // Don't use IO threads; just do normal IO
+    }
+
+    for (int i = base; i < top; i++) {
+        int status = pthread_create(&g->sysdep->threads[g->P + i],
+                                    NULL,
+                                    scheduler_thread_proc_for_io_worker,
+                                    g->workers[g->P + i]);
+        if (status != 0)
+            __cilkrts_bug("Cilk runtime error: io thread creation (%d) failed: %d\n", g->P + i, status);
+
+        CPU_ZERO(&mask);
+        CPU_SET(i*multiplier + offset, &mask);
+        status = pthread_setaffinity_np(&g->sysdep->threads[g->P + i], sizeof(mask), &mask);
+        if (status != 0)
+           __cilkrts_bug("Cilk runtime error: io thread creation (%d) could not set affinity (%d): %d\n", g->P + i, i*multiplier + offset, status);
     }
 }
 
@@ -307,8 +342,15 @@ void __cilkrts_start_workers(global_state_t *g, int n)
     g->workers_running = 1;
     g->work_done = 0;
 
+    // TODO: Don't assume our affinity starts at 0 and is linear
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    CPU_SET(0, &mask);
+    pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask);
+
     if (!g->sysdep->threads)
         return;
+
 
     // Do we actually have any threads to create?
     if (n > 0)
@@ -324,9 +366,8 @@ void __cilkrts_start_workers(global_state_t *g, int n)
             if (status != 0)
                 __cilkrts_bug("Cilk runtime error: thread creation (0) failed: %d\n", status);
 
-            cpu_set_t mask;
             CPU_ZERO(&mask);
-            CPU_SET(0, &mask);
+            CPU_SET(1, &mask);
             status = pthread_setaffinity_np(&g->sysdep->threads[1], sizeof(mask), &mask);
             if (status != 0)
                __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", 1, 1, status);
@@ -343,6 +384,7 @@ void __cilkrts_start_workers(global_state_t *g, int n)
             create_threads(g, 1, n+1);
 #endif
     }
+    create_io_threads(g, 0, n+1);
     // write the version information to a file if the environment is configured
     // for it (the function makes the check).
     write_version_file(g, n);

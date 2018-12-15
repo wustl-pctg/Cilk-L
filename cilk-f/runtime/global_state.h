@@ -279,6 +279,7 @@ struct global_state_t { /* COMMON_PORTABLE */
 	 */
 	char cache_buf_2[64];
 
+  int io_mode;
 	int P;         ///< USER SETTING: number of system workers + 1 (fixed)
 	int Q;         ///< Number of user threads currently bound to workers 
 	size_t active_stacks;
@@ -287,6 +288,10 @@ struct global_state_t { /* COMMON_PORTABLE */
 	size_t big_prime;
 	size_t ped_compression_vec[256];
 };
+
+#define IO_MODE__NORMAL         (0)
+#define IO_MODE__SHARED_CORE    (1)
+#define IO_MODE__DEDICATED_CORE (2)
 
 /**
  * @brief Initialize the global state object.  This method must both

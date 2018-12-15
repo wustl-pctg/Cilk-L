@@ -418,6 +418,8 @@ global_state_t* cilkg_get_user_settable_values()
 			g->stealing_disabled        = stealing_disabled;
 			g->under_ptool              = under_ptool;
 			g->force_reduce             = 0;   // Default Off
+      // TODO: Probably ought to default to NORMAL or SHARED
+      g->io_mode                  = IO_MODE__DEDICATED_CORE;
 			g->P                        = hardware_cpu_count;   // Defaults to hardware CPU count
 			g->max_user_workers         = 0;   // 0 unless set by user
 			g->fiber_pool_size          = 64;   // Arbitrary default
@@ -491,6 +493,10 @@ global_state_t* cilkg_get_user_settable_values()
 			// factored in twice.
 			//
 			// total_workers must be computed now to support __cilkrts_get_total_workers
+      // TODO: What about odd number of workers?
+      if (g->io_mode == IO_MODE__DEDICATED_CORE) {
+        g->P /= 2;  
+      }
 			g->total_workers = g->P + calc_max_user_workers(g) - 1;
 
 #ifdef CILK_RECORD_REPLAY
@@ -519,7 +525,6 @@ global_state_t* cilkg_get_user_settable_values()
             }
         }
 #endif
-        
 			cilkg_user_settable_values_initialized = true;
     }
 
