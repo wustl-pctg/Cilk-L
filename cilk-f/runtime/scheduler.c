@@ -782,7 +782,7 @@ static deque* choose_deque(__cilkrts_worker *w, __cilkrts_worker *victim)
     }
     
     if (w == victim && pool->size == 0) { // someone mugged us
-        CILK_ASSERT(w->g->P > 1);
+        CILK_ASSERT(w->g->io_mode != IO_MODE__NORMAL || w->g->P > 1);
         CILK_ASSERT(pool->array[0] == NULL);
     }
 
@@ -829,7 +829,7 @@ static void random_steal(__cilkrts_worker *w)
     // If we have suspended deques, we should be able to choose ourself.
     if (w->g->P == 1) {
         n = 0;
-        CILK_ASSERT(w->l->suspended_deques.size > 0
+        CILK_ASSERT(w->g->io_mode != IO_MODE__NORMAL || w->l->suspended_deques.size > 0
                     || w->l->resumable_deques.size > 0);
     } else {
 
@@ -3168,6 +3168,7 @@ static void make_worker_system(__cilkrts_worker *w) {
 static void make_worker_io(__cilkrts_worker *w) {
     CILK_ASSERT(WORKER_FREE == w->l->type);
     w->l->type = WORKER_IO;
+    w->l->io_queue = new_io_queue();
     //w->l->signal_node = signal_node_create();
 }
 
@@ -3306,7 +3307,8 @@ static enum schedule_t worker_runnable(__cilkrts_worker *w)
         // trying to steal.
         return SCHEDULE_WAIT;
     } else if (w->g->P == 1
-        && w->l->steal_failure_count > g->max_steal_failures) {
+        && w->l->steal_failure_count > g->max_steal_failures
+        && w->g->io_mode == IO_MODE__NORMAL) {
 
         CILK_ASSERT(w->l->suspended_deques.size +
                     w->l->resumable_deques.size > 0);
@@ -3366,8 +3368,14 @@ static void init_workers(global_state_t *g)
         make_worker_system(g->workers[i]);
     }
 
+    // TODO: Actually check if IO workers are enabled
     for (i = total_workers; i < total_workers*2; ++i) {
         make_worker_io(g->workers[i]);
+    }
+
+    // Associate the workers with their I/O threads
+    for (i = 0; i < total_workers; ++i) {
+      g->workers[i]->l->io_queue = g->workers[i+total_workers]->l->io_queue;
     }
 }
 

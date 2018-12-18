@@ -60,6 +60,9 @@
 #include "cilk_malloc.h"
 #include "reducer_impl.h"
 #include "metacall_impl.h"
+#include "io_scheduler.h"
+
+#include "cilk-io-queue.h"
 
 
 // On x86 processors (but not MIC processors), the compiler generated code to
@@ -282,14 +285,10 @@ static void create_threads(global_state_t *g, int base, int top)
 
         CPU_ZERO(&mask);
         CPU_SET(i*multiplier, &mask);
-        status = pthread_setaffinity_np(&g->sysdep->threads[i], sizeof(mask), &mask);
+        status = pthread_setaffinity_np(g->sysdep->threads[i], sizeof(mask), &mask);
         if (status != 0)
            __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", i, i*multiplier, status);
     }
-}
-
-static void scheduler_thread_proc_for_io_worker(void* unused) {
-  printf("Ran an io worker thread!\n");
 }
 
 static void create_io_threads(global_state_t *g, int base, int top)
@@ -314,7 +313,7 @@ static void create_io_threads(global_state_t *g, int base, int top)
 
         CPU_ZERO(&mask);
         CPU_SET(i*multiplier + offset, &mask);
-        status = pthread_setaffinity_np(&g->sysdep->threads[g->P + i], sizeof(mask), &mask);
+        status = pthread_setaffinity_np(g->sysdep->threads[g->P + i], sizeof(mask), &mask);
         if (status != 0)
            __cilkrts_bug("Cilk runtime error: io thread creation (%d) could not set affinity (%d): %d\n", g->P + i, i*multiplier + offset, status);
     }
@@ -367,8 +366,12 @@ void __cilkrts_start_workers(global_state_t *g, int n)
                 __cilkrts_bug("Cilk runtime error: thread creation (0) failed: %d\n", status);
 
             CPU_ZERO(&mask);
-            CPU_SET(1, &mask);
-            status = pthread_setaffinity_np(&g->sysdep->threads[1], sizeof(mask), &mask);
+            if (g->io_mode != IO_MODE__DEDICATED_CORE) {
+              CPU_SET(1, &mask);
+            } else {
+              CPU_SET(2, &mask);
+            }
+            status = pthread_setaffinity_np(g->sysdep->threads[1], sizeof(mask), &mask);
             if (status != 0)
                __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", 1, 1, status);
             

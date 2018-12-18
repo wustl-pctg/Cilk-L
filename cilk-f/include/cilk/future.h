@@ -6,7 +6,7 @@
 #include <vector>
 #include <internal/abi.h>
 #include <pthread.h>
-#include "handcomp-macros.h"
+#include <cilk/handcomp-macros.h>
 
 extern void __spawn_future_helper_helper(std::function<void*(void)>);
 
@@ -90,7 +90,7 @@ private:
   
 public:
 
- future() {
+  future() {
     m_num_suspended_deques = 0;
     tail = &head;
   };

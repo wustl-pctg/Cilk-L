@@ -58,7 +58,7 @@ GENERAL_FLAGS += -fpic -O3
 GENERAL_FLAGS += -fcilkplus
 
 AM_CFLAGS = $(XCFLAGS) $(GENERAL_FLAGS) -std=c99
-AM_CPPFLAGS = $(GENERAL_FLAGS)
+AM_CPPFLAGS = $(GENERAL_FLAGS) -std=c++11
 AM_LDFLAGS = $(XLDFLAGS)
 
 # Target list.
@@ -90,6 +90,8 @@ libcilkrts_la_SOURCES =            \
   runtime/cilk-abi.c               \
   runtime/cilk_future_fiber_deque.cpp \
   runtime/cilk-abi-future_utils.cpp \
+	runtime/cilk-io.cpp							 \
+	runtime/cilk-io-queue.c					 \
   runtime/cilk-abi-cilk-for.cpp    \
   runtime/cilk-abi-vla-internal.c  \
   runtime/cilk_api.c               \
@@ -102,6 +104,7 @@ libcilkrts_la_SOURCES =            \
   runtime/frame_malloc.c           \
   runtime/full_frame.c             \
   runtime/global_state.cpp         \
+	runtime/io_scheduler.cpp 				 \
   runtime/jmpbuf.c                 \
   runtime/local_state.c            \
   runtime/metacall_impl.c          \
@@ -148,11 +151,13 @@ cilkinclude_HEADERS =              \
   include/cilk/cilk_api.h          \
   include/cilk/cilk_api_linux.h    \
   include/cilk/cilk.h              \
+	include/cilk/cilk_io.h					 \
   include/cilk/cilk_stub.h         \
   include/cilk/cilk_undocumented.h \
   include/cilk/common.h            \
   include/cilk/holder.h            \
   include/cilk/hyperobject_base.h  \
+	include/cilk/future.h						 \
   include/cilk/metaprogramming.h   \
   include/cilk/reducer_file.h      \
   include/cilk/reducer.h           \

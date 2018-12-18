@@ -70,6 +70,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include "cilk-io-queue.h"
 
 #ifndef _WIN32
 #   include <pthread.h>
@@ -434,6 +435,8 @@ struct local_state  /* COMMON_PORTABLE */
 	 * [local read/write]
 	 */
 	replay_entry_t *replay_list_entry;
+
+  io_queue_t     *io_queue;
     
 	/**
 	 * Separate the signal_node from other things in the local_state by the
