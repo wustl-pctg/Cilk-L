@@ -583,7 +583,7 @@ cilk_fiber* deque_suspend(__cilkrts_worker *w, deque *new_deque)
           victim = potential_victim;
         }
     } else {
-      victim = w;
+      victim = w->g->workers[0];
     }
 
         DEQUE_LOG("(w: %i) pushing suspended deque %p on to %i\n",

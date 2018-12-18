@@ -3198,6 +3198,13 @@ void __cilkrts_deinit_internal(global_state_t *g)
     // Destroy any system dependent global state
     __cilkrts_destroy_global_sysdep(g);
 
+    if (w->g->io_mode != IO_MODE__NORMAL) {
+        io_op_t quit = { .type = IOTYPE__QUIT };
+        for (i = g->total_workers; i < g->total_workers*2; ++i) {
+            io_queue_push(g->workers[i]->l->io_queue, &quit);  
+        }
+    }
+
     for (i = 0; i < g->total_workers*2; ++i)
         destroy_worker(g->workers[i]);
 
@@ -3368,14 +3375,16 @@ static void init_workers(global_state_t *g)
         make_worker_system(g->workers[i]);
     }
 
-    // TODO: Actually check if IO workers are enabled
-    for (i = total_workers; i < total_workers*2; ++i) {
-        make_worker_io(g->workers[i]);
-    }
+    if (g->io_mode != IO_MODE__NORMAL) {
+      // TODO: Actually check if IO workers are enabled
+      for (i = total_workers; i < total_workers*2; ++i) {
+          make_worker_io(g->workers[i]);
+      }
 
-    // Associate the workers with their I/O threads
-    for (i = 0; i < total_workers; ++i) {
-      g->workers[i]->l->io_queue = g->workers[i+total_workers]->l->io_queue;
+      // Associate the workers with their I/O threads
+      for (i = 0; i < total_workers; ++i) {
+        g->workers[i]->l->io_queue = g->workers[i+total_workers]->l->io_queue;
+      }
     }
 }
 

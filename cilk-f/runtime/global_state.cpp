@@ -495,7 +495,11 @@ global_state_t* cilkg_get_user_settable_values()
 			// total_workers must be computed now to support __cilkrts_get_total_workers
       // TODO: What about odd number of workers?
       if (g->io_mode == IO_MODE__DEDICATED_CORE) {
-        g->P /= 2;  
+        if (g->P > 1) {
+          g->P /= 2;  
+        } else {
+          g->io_mode = IO_MODE__NORMAL;
+        }
       }
 			g->total_workers = g->P + calc_max_user_workers(g) - 1;
 

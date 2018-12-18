@@ -132,7 +132,7 @@ void __cilkrts_make_resumable(void* _deque)
           victim = potential_victim;
       }
     } else {
-      victim = w;
+      victim = w->g->workers[0];
     }
 
     CILK_ASSERT(deque_to_resume->self == INVALID_DEQUE_INDEX);

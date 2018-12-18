@@ -23,7 +23,7 @@ io_future cilk_write(int fildes, void *buf, size_t nbyte) {
   fut.f = (void*) new base_io_fut();
 
   __cilkrts_worker *self = __cilkrts_get_tls_worker_fast();
-  if (self) {
+  if (self->l->io_queue) {
     io_op_t op = {
       .type = IOTYPE__WRITE,
       .fildes = fildes,

@@ -387,7 +387,8 @@ void __cilkrts_start_workers(global_state_t *g, int n)
             create_threads(g, 1, n+1);
 #endif
     }
-    create_io_threads(g, 0, n+1);
+    if (g->io_mode != IO_MODE__NORMAL)
+      create_io_threads(g, 0, n+1);
     // write the version information to a file if the environment is configured
     // for it (the function makes the check).
     write_version_file(g, n);
