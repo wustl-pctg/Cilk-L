@@ -38,6 +38,7 @@ void io_queue_push(io_queue_t* q, io_op_t* op) {
   __cilkrts_fence();
   q->tail = t;
 
+  // Wake up the IO worker (if sleeping)
   uint64_t val = 1;
   syscall(SYS_write, q->eventfd, &val, 8);
 }
@@ -50,6 +51,9 @@ io_op_t io_queue_pop(io_queue_t* q) {
 
   io_op_t ret = q->q[q->head];
   q->head = (q->head + 1) % IO_Q_SIZE(q);
+
+  // Decrement the eventfd counter
+  // This is necessary so edge triggered epoll works
   uint64_t val = 0;
   syscall(SYS_read, q->eventfd, &val, 8);
 
