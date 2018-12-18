@@ -22,8 +22,6 @@ void make_worker_io(__cilkrts_worker *w) {
 }
 
 void scheduler_thread_proc_for_io_worker(void* arg) {
-  printf("Ran an io worker thread!\n");
-
   __cilkrts_worker *self = (__cilkrts_worker*)arg;
   __cilkrts_set_tls_worker(self);
 
