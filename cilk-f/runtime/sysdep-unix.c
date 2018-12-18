@@ -271,7 +271,7 @@ static void create_threads(global_state_t *g, int base, int top)
 {
     cpu_set_t mask;
     int multiplier = 1;
-    if (g->io_mode == IO_MODE__DEDICATED_CORE) multiplier = 2;
+    //if (g->io_mode == IO_MODE__DEDICATED_CORE) multiplier = 2;
 
     // TBD(11/30/12): We want to insert code providing the option of
     // pinning system workers to cores.
@@ -297,8 +297,13 @@ static void create_io_threads(global_state_t *g, int base, int top)
     int multiplier = 1;
     int offset = 0;
     if (g->io_mode == IO_MODE__DEDICATED_CORE) {
-      multiplier = 2;
-      offset = 1;
+      //multiplier = 2;
+      // TODO: Make this portable
+      //       It appears as though the numbering is
+      //       all the primary threads, then all the
+      //       secondary threads, but it may not always be so
+      offset = sysconf(_SC_NPROCESSORS_ONLN) / 2;
+      printf("Offset: %d\n", offset); fflush(stdout);
     } else if (g->io_mode == IO_MODE__NORMAL) {
       return; // Don't use IO threads; just do normal IO
     }
