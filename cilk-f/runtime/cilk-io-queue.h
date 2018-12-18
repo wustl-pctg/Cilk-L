@@ -23,6 +23,7 @@ typedef struct io_op_t {
 typedef struct io_queue_t {
   volatile size_t head;
   volatile size_t tail;
+  int eventfd;
   volatile io_op_t q[DEFAULT_IO_Q_SIZE];
 } io_queue_t;
 

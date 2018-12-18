@@ -498,6 +498,7 @@ global_state_t* cilkg_get_user_settable_values()
         if (g->P > 1) {
           g->P /= 2;  
         } else {
+          //g->io_mode = IO_MODE__SHARED_CORE;
           g->io_mode = IO_MODE__NORMAL;
         }
       }

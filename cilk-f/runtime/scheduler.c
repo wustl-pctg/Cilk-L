@@ -53,6 +53,7 @@
  */
 
 #include "scheduler.h"
+#include "io_scheduler.h"
 #include "bug.h"
 #include "os.h"
 #include "os_mutex.h"
@@ -3165,12 +3166,6 @@ static void make_worker_system(__cilkrts_worker *w) {
     w->l->signal_node = signal_node_create();
 }
 
-static void make_worker_io(__cilkrts_worker *w) {
-    CILK_ASSERT(WORKER_FREE == w->l->type);
-    w->l->type = WORKER_IO;
-    w->l->io_queue = new_io_queue();
-    //w->l->signal_node = signal_node_create();
-}
 
 void __cilkrts_deinit_internal(global_state_t *g)
 {
