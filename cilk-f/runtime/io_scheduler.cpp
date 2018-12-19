@@ -2,10 +2,15 @@
 
 #include <cilk/future.h>
 #include <cilk/cilk_io.h>
+#include <string.h>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+
+#include <unordered_map>
+#include <unordered_set>
+#include <deque>
 
 #include "bug.h"
 #include "global_state.h"
@@ -21,6 +26,41 @@ void make_worker_io(__cilkrts_worker *w) {
     //w->l->signal_node = signal_node_create();
 }
 
+static int perform_io_until_block(const int &syscall_no, io_op_t &op) {
+    int res;
+    int orig_nbytes = op.nbyte;
+    do {
+      res = syscall(syscall_no, op.fildes, op.buf, op.nbyte);
+      op.nbyte -= res;
+    } while (op.nbyte > 0 && res > 0);
+
+    if (res < 0) {
+      op.nbyte += res;
+      CILK_ASSERT(errno == EAGAIN || errno == EWOULDBLOCK);
+      return 1;
+    }
+
+    void *deque = ((base_io_fut*)op.fut.f)->put(orig_nbytes);
+    if (deque) __cilkrts_make_resumable(deque);
+
+    return 0;
+}
+
+static void __attribute__((always_inline)) handle_event(const int &syscall_no, const int &fd, std::deque<io_op_t> &op_queue, std::unordered_set<int> &blocked_set, std::unordered_set<int> &unblocked_set) {
+  int res = 0;
+  while (!op_queue.empty() && res != 1) {
+    io_op_t& op = op_queue.front();
+    res = perform_io_until_block(syscall_no, op);
+    if (res == 0) {
+        op_queue.pop_front();
+    }
+  }
+  if (op_queue.empty()) {
+    blocked_set.erase(fd);
+    unblocked_set.emplace(fd);
+  }
+}
+
 void scheduler_thread_proc_for_io_worker(void* arg) {
   __cilkrts_worker *self = (__cilkrts_worker*)arg;
   __cilkrts_set_tls_worker(self);
@@ -28,52 +68,121 @@ void scheduler_thread_proc_for_io_worker(void* arg) {
   __cilkrts_worker *coworker = self->g->workers[self->self - self->g->P];
 
   io_op_t curr_op;
-  void *deque = NULL;
 
   int epoll_fd = epoll_create(4096); // Argument just needs to be positive
-  struct epoll_event event = {
-    .data.fd = self->l->io_queue->eventfd,
-    .events = EPOLLIN | EPOLLET
-  };
+
+  struct epoll_event event;
+  memset(&event, 0, sizeof(event));
+  event.data.fd = self->l->io_queue->eventfd;
+  event.events = EPOLLIN | EPOLLET;
+
+  int num_triggered = 0;
+  struct epoll_event triggered_events[4096];
   epoll_ctl(epoll_fd, EPOLL_CTL_ADD, self->l->io_queue->eventfd, &event);
+  ssize_t ret_val;
+
+  // The first deque contains read ops, the second deque contains write ops
+  std::unordered_map<int, std::pair<std::deque<io_op_t>, std::deque<io_op_t> > > blocked_ops;
+
+  std::unordered_set<int> blocked_read_fds;
+  std::unordered_set<int> ready_read_fds;
+  std::unordered_set<int> blocked_write_fds;
+  std::unordered_set<int> ready_write_fds;
+  bool check_queue = true;
 
   while (!self->g->work_done) {
-    do {
 
-      curr_op = io_queue_pop(self->l->io_queue);
-
-      switch(curr_op.type) {
-        case IOTYPE__READ:
-          {
-            deque = ((base_io_fut*)curr_op.fut.f)->put(syscall(SYS_read, curr_op.fildes, curr_op.buf, curr_op.nbyte));
+      num_triggered = epoll_wait(epoll_fd, triggered_events, 4096, -1);
+      if (num_triggered < 0) {
+          __cilkrts_bug("epoll_wait returned an error (%s)\n", strerror(errno));
+      }
+      for (int i = 0; i < num_triggered; i++) {
+          if (triggered_events[i].data.fd == self->l->io_queue->eventfd) {
+            check_queue = true;
+            continue;
           }
-          break;
-
-        case IOTYPE__WRITE:
-          {
-            deque = ((base_io_fut*)curr_op.fut.f)->put(syscall(SYS_write, curr_op.fildes, curr_op.buf, curr_op.nbyte));
+          if (triggered_events[i].events & EPOLLIN) {
+              int fd = triggered_events[i].data.fd;
+              handle_event(SYS_read, fd, blocked_ops[fd].first, blocked_read_fds, ready_read_fds);
           }
-          break;
+          if (triggered_events[i].events & EPOLLOUT) {
+              int fd = triggered_events[i].data.fd;
+              handle_event(SYS_write, fd, blocked_ops[fd].second, blocked_write_fds, ready_write_fds);
+          }
+      }
 
-        case IOTYPE__INVALID:
-        case IOTYPE__QUIT:
-          break;
+    if (check_queue) {
+        check_queue = false;
+        //int val = 0;
+        //syscall(SYS_read, self->l->io_queue->eventfd, &val, 8);
 
-        default:
-          __cilkrts_bug("ERR: Invalid IO type passed to IO worker! (%d)\n", curr_op.type);
-          CILK_ASSERT(!"Should not arrive here");
-          break;
-
-      } // switch(curr_op.type)
-
-      if (deque) __cilkrts_make_resumable(deque);
-      deque = NULL;
-
-    } while (curr_op.type != IOTYPE__QUIT && curr_op.type != IOTYPE__INVALID);
-
-    if (curr_op.type == IOTYPE__INVALID) {
-      epoll_wait(epoll_fd, &event, 1, -1);
+        do {
+            curr_op = io_queue_pop(self->l->io_queue);
+            if (curr_op.type == IOTYPE__READ) {
+                if (blocked_read_fds.count(curr_op.fildes)) {
+                    blocked_ops[curr_op.fildes].first.emplace_back(std::move(curr_op));
+                } else {
+                    ret_val = perform_io_until_block(SYS_read, curr_op);
+                    // If we would have blocked
+                    if (ret_val) {
+                        if (ready_read_fds.count(curr_op.fildes)) {
+                            blocked_read_fds.emplace(curr_op.fildes);
+                            ready_read_fds.erase(curr_op.fildes);
+                            blocked_ops[curr_op.fildes].first.emplace_back(std::move(curr_op));
+                        } else {
+                            blocked_read_fds.emplace(curr_op.fildes);
+                            blocked_ops[curr_op.fildes].first.emplace_back(std::move(curr_op));
+                            event = {
+                                .data.fd = curr_op.fildes,
+                                .events = EPOLLIN | EPOLLET
+                            };
+                            epoll_ctl(epoll_fd, EPOLL_CTL_ADD, curr_op.fildes, &event);
+                        }
+                    }
+                }
+            } else if (curr_op.type == IOTYPE__WRITE) {
+                if (blocked_write_fds.count(curr_op.fildes)) {
+                    blocked_ops[curr_op.fildes].second.emplace_back(std::move(curr_op));
+                } else {
+                    ret_val = perform_io_until_block(SYS_write, curr_op);
+                    // If we would have blocked
+                    if (ret_val) {
+                        if (ready_write_fds.count(curr_op.fildes)) {
+                            blocked_write_fds.emplace(curr_op.fildes);
+                            ready_write_fds.erase(curr_op.fildes);
+                            blocked_ops[curr_op.fildes].second.emplace_back(std::move(curr_op));
+                        } else {
+                            blocked_write_fds.emplace(curr_op.fildes);
+                            blocked_ops[curr_op.fildes].second.emplace_back(std::move(curr_op));
+                            event = {
+                                .data.fd = curr_op.fildes,
+                                .events = EPOLLOUT | EPOLLET
+                            };
+                            epoll_ctl(epoll_fd, EPOLL_CTL_ADD, curr_op.fildes, &event);
+                        }
+                    }
+                }
+            }
+        } while (curr_op.type != IOTYPE__INVALID);
     }
+
+    for (int fd : ready_read_fds) {
+      event = {
+          .data.fd = fd,
+          .events = EPOLLIN
+      };
+      epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, &event);
+    }
+    ready_read_fds.clear();
+
+    for (int fd : ready_write_fds) {
+      event = {
+          .data.fd = fd,
+          .events = EPOLLOUT
+      };
+      epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, &event);
+    }
+    ready_write_fds.clear();
 
   } // while(!self->g->work_done)
 

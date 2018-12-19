@@ -37,6 +37,7 @@ void io_queue_push(io_queue_t* q, io_op_t* op) {
   q->q[q->tail] = *op;
   __cilkrts_fence();
   q->tail = t;
+  __cilkrts_fence();
 
   // Wake up the IO worker (if sleeping)
   uint64_t val = 1;

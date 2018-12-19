@@ -27,8 +27,6 @@ io_future cilk_read(int fildes, void *buf, size_t nbyte) {
     ((base_io_fut*)fut.f)->put(syscall(SYS_read, fildes, buf, nbyte));
   }
 
-  //((base_io_fut*)fut.f)->put(read(fildes, buf, nbyte));
-
   return fut;
 }
 

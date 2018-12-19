@@ -12,7 +12,6 @@ typedef struct io_op_t {
   io_future fut;
 } io_op_t;
 
-#define IOTYPE__QUIT      (-2)
 #define IOTYPE__INVALID   (-1)
 #define IOTYPE__READ      (0)
 #define IOTYPE__WRITE     (1)
