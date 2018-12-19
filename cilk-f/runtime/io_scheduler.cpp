@@ -32,10 +32,12 @@ static int perform_io_until_block(const int &syscall_no, io_op_t &op) {
     do {
       res = syscall(syscall_no, op.fildes, op.buf, op.nbyte);
       op.nbyte -= res;
+      op.buf = (void*)((char*)op.buf + res);
     } while (op.nbyte > 0 && res > 0);
 
     if (res < 0) {
       op.nbyte += res;
+      op.buf = (void*)((char*)op.buf - res);
       CILK_ASSERT(errno == EAGAIN || errno == EWOULDBLOCK);
       return 1;
     }
