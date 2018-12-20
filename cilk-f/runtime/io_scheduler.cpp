@@ -37,13 +37,21 @@ static int perform_io_until_block(const int &syscall_no, io_op_t &op) {
 
     if (res < 0) {
       op.nbyte += res;
-      op.res -= res;
       op.buf = (void*)((char*)op.buf - res);
-      CILK_ASSERT(errno == EAGAIN || errno == EWOULDBLOCK);
-      return 1;
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        op.res -= res;
+        return 1;
+      } else {
+        op.res = -1;
+      }
     }
 
-    void *deque = ((base_io_fut*)op.fut.f)->put(op.res);
+    io_future_result fut_val = {
+      .ret_val = op.res,
+      .errno_val = errno
+    };
+
+    void *deque = ((base_io_fut*)op.fut.f)->put(std::move(fut_val));
     if (deque) __cilkrts_make_resumable(deque);
 
     return 0;

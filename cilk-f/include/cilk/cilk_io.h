@@ -6,11 +6,15 @@
 #ifdef __cplusplus
 
 #include <cilk/future.h>
-typedef cilk::future<ssize_t> base_io_fut;
 
 extern "C" {
 
 #endif
+
+typedef struct io_future_result {
+  ssize_t ret_val;
+  int     errno_val;
+} io_future_result;
 
 typedef struct io_future {
   void *f; // A pointer to the underlying future type (c++ object)
@@ -18,9 +22,12 @@ typedef struct io_future {
 
 extern io_future cilk_read(int fildes, void *buf, size_t nbyte);
 extern io_future cilk_write(int fildes, void *buf, size_t nbyte);
-extern ssize_t cilk_iosync(io_future *fut);
+extern io_future_result cilk_iosync(io_future *fut);
 
 #ifdef __cplusplus
+
+typedef cilk::future<io_future_result> base_io_fut;
+
 }
 #endif
 

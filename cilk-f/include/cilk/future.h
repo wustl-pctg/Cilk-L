@@ -105,7 +105,8 @@ public:
   }
 
   void* __attribute__((always_inline)) put(T result) {
-    m_result = result;
+    // C++ and its lack of default volatile copy constructors is annoying
+    *(const_cast<T*>(&m_result)) = result;
     __asm__ volatile ("" ::: "memory");
 
     int num_deques = __atomic_fetch_add(&m_num_suspended_deques, INT32_MIN, __ATOMIC_SEQ_CST);
@@ -141,7 +142,8 @@ public:
     }
 
     assert(ready());
-    return m_result;
+    // C++ and its lack of default volatile copy constructors is annoying
+    return *(const_cast<T*>(&m_result));
   }
 }; // class future
 
