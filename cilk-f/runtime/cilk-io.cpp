@@ -20,6 +20,7 @@ io_future cilk_read(int fildes, void *buf, size_t nbyte) {
       .fildes = fildes,
       .buf = buf,
       .nbyte = nbyte,
+      .res = 0,
       .fut = fut
     };
     io_queue_push(self->l->io_queue, &op);
@@ -41,6 +42,7 @@ io_future cilk_write(int fildes, void *buf, size_t nbyte) {
       .fildes = fildes,
       .buf = buf,
       .nbyte = nbyte,
+      .res = 0,
       .fut = fut
     };
 

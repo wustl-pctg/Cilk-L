@@ -23,7 +23,6 @@ void make_worker_io(__cilkrts_worker *w) {
     CILK_ASSERT(WORKER_FREE == w->l->type);
     w->l->type = WORKER_IO;
     w->l->io_queue = new_io_queue();
-    //w->l->signal_node = signal_node_create();
 }
 
 static int perform_io_until_block(const int &syscall_no, io_op_t &op) {
@@ -32,17 +31,19 @@ static int perform_io_until_block(const int &syscall_no, io_op_t &op) {
     do {
       res = syscall(syscall_no, op.fildes, op.buf, op.nbyte);
       op.nbyte -= res;
+      op.res += res;
       op.buf = (void*)((char*)op.buf + res);
-    } while (op.nbyte > 0 && res > 0);
+    } while (op.nbyte > 0 && res > 0 && syscall_no != SYS_read);
 
     if (res < 0) {
       op.nbyte += res;
+      op.res -= res;
       op.buf = (void*)((char*)op.buf - res);
       CILK_ASSERT(errno == EAGAIN || errno == EWOULDBLOCK);
       return 1;
     }
 
-    void *deque = ((base_io_fut*)op.fut.f)->put(orig_nbytes);
+    void *deque = ((base_io_fut*)op.fut.f)->put(op.res);
     if (deque) __cilkrts_make_resumable(deque);
 
     return 0;

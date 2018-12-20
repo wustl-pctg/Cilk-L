@@ -9,6 +9,7 @@ typedef struct io_op_t {
   int fildes;
   void *buf;
   size_t nbyte;
+  size_t res;
   io_future fut;
 } io_op_t;
 
