@@ -1,43 +1,37 @@
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h>
+#include <netdb.h>
+
+#include <arpa/inet.h>
 
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-void producer_thread_func(void *args) {
-    int sock_fd;
+#include <pthread.h>
+
+#include "fib-producer.h"
+
+static pthread_t prod_thread;
+
+void* producer_thread_func(void *args) {
+    producer_args_t *opts = (producer_args_t*)args;
+
+    //int sock_fd;
     int comm_fd;
     struct sockaddr_storage client_addr;
-    struct sockaddr_in servaddr;
 
-    memset(&servaddr, 0, sizeof(servaddr));
-    servaddr.sin_family = AF_INET; 
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
-    servaddr.sin_port = htons(9001); 
-
-    sock_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock_fd == -1) {
-        printf("ERR: could not create server socket (%s)\n", strerror(errno));
-        exit(1);
-    }
-
-    int err = bind(sock_fd, (struct sockaddr*)&servaddr, sizeof(servaddr));
-
-    if (err == -1) {
-        printf("ERR: could not bind server socket (%s)\n", strerror(errno));
-        exit(1);
-    }
-
-    err = listen(sock_fd, 1);
+    int err = listen(opts->sock_fd, 1);
     if (err == -1) {
         printf("ERR: error in listen() (%s)\n", strerror(errno));
         exit(1);
     }
 
     socklen_t addr_size = sizeof(client_addr);
-    comm_fd = accept(sock_fd, (struct sockaddr *)&client_addr, &addr_size);
-    close(sock_fd);
+    comm_fd = accept(opts->sock_fd, (struct sockaddr *)&client_addr, &addr_size);
+    close(opts->sock_fd);
 
     if (comm_fd == -1) {
         printf("ERR: error in accept() (%s)\n", strerror(errno));
@@ -46,4 +40,39 @@ void producer_thread_func(void *args) {
 
     write(comm_fd, "start", strlen("start"));
     close(comm_fd);
+
+    return NULL;
+}
+
+void create_producer(producer_args_t *args) {
+    struct sockaddr_in servaddr;
+
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET; 
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
+    servaddr.sin_port = htons(9001); 
+
+    args->sock_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (args->sock_fd == -1) {
+        printf("ERR: could not create server socket (%s)\n", strerror(errno));
+        exit(1);
+    }
+
+    int err = bind(args->sock_fd, (struct sockaddr*)&servaddr, sizeof(servaddr));
+
+    if (err == -1) {
+        printf("ERR: could not bind server socket (%s)\n", strerror(errno));
+        exit(1);
+    }
+
+    err = pthread_create(&prod_thread, NULL, producer_thread_func, args);
+    if (err == -1) {
+        printf("ERR: could not create producer thread (%s)\n", strerror(errno));
+        exit(1);
+    }
+}
+
+void join_producer(producer_args_t *args) {
+    pthread_join(prod_thread, NULL);
+    close(args->sock_fd);
 }

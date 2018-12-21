@@ -2,4 +2,6 @@
 !.gitignore
 !*.c
 !*.cpp
+!*.h
+!*.hpp
 !Makefile

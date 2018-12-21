@@ -6,6 +6,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "fib-consumer.h"
+#include "fib-producer.h"
+
 static int serial_base_case = 2;
 
 int serial_fib(int n) {
@@ -64,8 +67,38 @@ int main(void) {
     int saved_flags = fcntl(STDIN_FILENO, F_GETFL);
     fcntl(STDIN_FILENO, F_SETFL, saved_flags | O_NONBLOCK);
 
+    producer_args_t prod_args = {
+      .sleep_usec = 30000,
+      .num_writes = 100,
+      .fib_number = 30,
+      .sock_fd = 0,
+    };
+
+    create_producer(&prod_args);
+
+    int recv_fd = open_consumer();
+    saved_flags = fcntl(recv_fd, F_GETFL);
+    fcntl(recv_fd, F_SETFL, saved_flags | O_NONBLOCK);
+
+    int recvd = 0;
+
+    char tmp[512];
+
+    do {
+        recvd = read(recv_fd, tmp, 511);
+        if (recvd == -1) {
+            printf("Would have blocked!\n");
+        }
+    } while (recvd == -1);
+
+    tmp[recvd] = 0;
+    printf("Got %s\n", tmp);
+
     cilk_spawn run_bench(STDIN_FILENO);
     cilk_sync;
+
+    join_producer(&prod_args);
+    close(recv_fd);
 
     return 0;
 }

@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "fib-consumer.h"
+
 int open_consumer(void) {
     int sock_fd;
     struct sockaddr_in server_addr;
@@ -25,8 +27,13 @@ int open_consumer(void) {
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     server_addr.sin_port = htons(9001);
+    
+    int err = -1;
 
-    int err = connect(sock_fd, (struct sockaddr*)&server_addr, sizeof(server_addr));
+    for (int i = 0; err == -1 && i < 100; i++) {
+        err = connect(sock_fd, (struct sockaddr*)&server_addr, sizeof(server_addr));
+        usleep(100);
+    }
 
     if (err == -1) {
         printf("ERR: could not connect client to server socket (%s)\n", strerror(errno));
