@@ -31,7 +31,7 @@ fib-l: clean fib-l.c
 	$(CXX) -flto fib-l.o -o fib-l $(FUTURE_LDFLAGS)
 
 TARGETS += fib-fj
-APPS = fib-fj
+APPS += fib-fj
 
 fib-fj: clean fib-fj.c
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-fj.c -o fib-fj.o
