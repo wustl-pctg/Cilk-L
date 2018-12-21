@@ -30,6 +30,13 @@ fib-l: clean fib-l.c
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-l.c -o fib-l.o
 	$(CXX) -flto fib-l.o -o fib-l $(FUTURE_LDFLAGS)
 
+TARGETS += fib-fj
+APPS = fib-fj
+
+fib-fj: clean fib-fj.c
+	$(CXX) $(FUTURE_CXXFLAGS) -c fib-fj.c -o fib-fj.o
+	$(CXX) -flto fib-fj.o -o fib-fj $(FUTURE_LDFLAGS)
+
 
 ###########################################################################
 # Though shalt not cross this line lest thou knowest what thou art doing! #
