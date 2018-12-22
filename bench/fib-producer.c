@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <netdb.h>
 
+#include <sys/timerfd.h>
+
 #include <arpa/inet.h>
 
 #include <errno.h>
@@ -14,7 +16,7 @@
 
 #include "fib-producer.h"
 
-static pthread_t prod_thread;
+/*static pthread_t prod_thread;
 
 void* producer_thread_func(void *args) {
     producer_args_t *opts = (producer_args_t*)args;
@@ -39,13 +41,35 @@ void* producer_thread_func(void *args) {
     }
 
     write(comm_fd, "start", strlen("start"));
+
+    for (int i = 0; i < opts->num_writes; i++) {
+        usleep(opts->sleep_usec);
+        write(comm_fd, opts->fib_number, strlen(opts->fib_number));
+    }
+
+    write(comm_fd, "q", 1);
+    //usleep(opts->sleep_usec);
+    opts->sock_fd = comm_fd;
     close(comm_fd);
 
     return NULL;
 }
+*/
+int create_producer(int usec_timeout) {
+    int timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
 
-void create_producer(producer_args_t *args) {
-    struct sockaddr_in servaddr;
+    struct itimerspec timeout;
+    timeout.it_interval = {
+        .tv_sec = usec_timeout / 1000000,
+        .tv_nsec = (usec_timeout % 1000000) * 1000
+    }; 
+
+    timeout.it_value = timeout.it_interval;
+
+    timerfd_settime(timer_fd, 0, &timeout, NULL);
+
+    return timer_fd;
+    /*struct sockaddr_in servaddr;
 
     memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET; 
@@ -70,9 +94,10 @@ void create_producer(producer_args_t *args) {
         printf("ERR: could not create producer thread (%s)\n", strerror(errno));
         exit(1);
     }
+    */
 }
 
 void join_producer(producer_args_t *args) {
-    pthread_join(prod_thread, NULL);
-    close(args->sock_fd);
+    //pthread_join(prod_thread, NULL);
+    //close(args->sock_fd);
 }

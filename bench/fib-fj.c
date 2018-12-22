@@ -3,8 +3,10 @@
 
 #include <string.h>
 
-#include <fcntl.h>
 #include <unistd.h>
+
+#include "fib-consumer.h"
+#include "fib-producer.h"
 
 static int serial_base_case = 2;
 
@@ -38,29 +40,28 @@ void wrap_fib(int n) {
 }
 
 void run_bench(int fd) {
-    char in_buf[3];
-    int val = 0;
+    uint64_t in_buf;
+    volatile int val = 30;
     int res = 0;
-    do {
-        res = read(fd, in_buf, 3);
+    for (int i = 0; i < 3000; ) {
+        res = read(fd, &in_buf, sizeof(uint64_t));
 
-        if (res <= 0) {
-          fprintf(stderr, "ERROR READING INPUT: %s\n", strerror(errno));
-          exit(1);
+        for (uint64_t j = 0; j < in_buf && i < 3000; j++) {
+            i++;
+            cilk_spawn wrap_fib(val);
         }
 
-        in_buf[res-1] = 0;
-        val = atoi(in_buf);
-        if (val != 0) {
-          cilk_spawn wrap_fib(val);
-        }
-
-    } while(strcmp(in_buf, "q") != 0);
+    }
 }
 
 int main(void) {
-    cilk_spawn run_bench(STDIN_FILENO);
+    int recv_fd = create_producer(5000);
+
+    cilk_spawn run_bench(recv_fd);
     cilk_sync;
+
+    //join_producer(&prod_args);
+    close(recv_fd);
 
     return 0;
 }

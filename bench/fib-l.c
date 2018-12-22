@@ -39,52 +39,50 @@ void wrap_fib(int n) {
     int res = fib(n);
     printf("Res: %d\n", res);
 }
-
+#include <assert.h>
 void run_bench(int fd) {
     io_future_result io_res = { 0, 0};
     io_future fut;
-    char in_buf[3];
-    int val = 0;
-    do {
-        fut = cilk_read(fd, in_buf, 3);
+    uint64_t in_buf;
+    volatile int val = 30;
+    //do {
+    for (int i = 0; i < 3000; ) {
+        fut = cilk_read(fd, &in_buf, sizeof(uint64_t));
         io_res = cilk_iosync(&fut);
 
-        if (io_res.ret_val <= 0) {
-          fprintf(stderr, "ERROR READING INPUT: %s\n", strerror(io_res.errno_val));
-          exit(1);
-        }
+        //if (io_res.ret_val <= 0) {
+        //  assert(in_buf[0] == 'q');
+          //fprintf(stderr, "ERROR READING INPUT: %s\n", strerror(io_res.errno_val));
+          //exit(1);
+        //} else {
+        //    in_buf[io_res.ret_val] = 0;
+        //}
 
-        in_buf[io_res.ret_val-1] = 0;
-        val = atoi(in_buf);
-        if (val != 0) {
+        //val = atoi(in_buf);
+        //if (val != 0) {
+        for (uint64_t j = 0; j < in_buf && i < 3000; j++) {
+          i++;
           cilk_spawn wrap_fib(val);
         }
+        //}
 
-    } while(strcmp(in_buf, "q") != 0);
+        //assert(io_res.ret_val != 0);
+    }
+    //} while(in_buf[0] != 'q');
 }
 
 int main(void) {
-    int saved_flags = fcntl(STDIN_FILENO, F_GETFL);
-    fcntl(STDIN_FILENO, F_SETFL, saved_flags | O_NONBLOCK);
+    int recv_fd = create_producer(5000);
 
-    producer_args_t prod_args = {
-      .sleep_usec = 30000,
-      .num_writes = 100,
-      .fib_number = 30,
-      .sock_fd = 0,
-    };
-
-    create_producer(&prod_args);
-
-    int recv_fd = open_consumer();
-    saved_flags = fcntl(recv_fd, F_GETFL);
+    //int recv_fd = open_consumer();
+    int saved_flags = fcntl(recv_fd, F_GETFL);
     fcntl(recv_fd, F_SETFL, saved_flags | O_NONBLOCK);
 
-    int recvd = 0;
+    //int recvd = 0;
 
-    char tmp[512];
+    //char tmp[512];
 
-    do {
+    /*do {
         recvd = read(recv_fd, tmp, 511);
         if (recvd == -1) {
             printf("Would have blocked!\n");
@@ -93,11 +91,12 @@ int main(void) {
 
     tmp[recvd] = 0;
     printf("Got %s\n", tmp);
+    */
 
-    cilk_spawn run_bench(STDIN_FILENO);
+    cilk_spawn run_bench(recv_fd);
     cilk_sync;
 
-    join_producer(&prod_args);
+    //join_producer(&prod_args);
     close(recv_fd);
 
     return 0;
