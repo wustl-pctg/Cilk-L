@@ -41,6 +41,20 @@ fib-fj: clean fib-fj.c fib-producer.o
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-fj.c -o fib-fj.o
 	$(CXX) -flto fib-fj.o fib-producer.o -o fib-fj $(FUTURE_LDFLAGS)
 
+TARGETS += fib-mr-l
+APPS += fib-mr-l
+
+fib-mr-l: clean fib-mr-l.c fib-producer.o
+	$(CXX) $(FUTURE_CXXFLAGS) -c fib-mr-l.c -o fib-mr-l.o
+	$(CXX) -flto fib-mr-l.o fib-producer.o -o fib-mr-l $(FUTURE_LDFLAGS)
+
+TARGETS += fib-mr-fj
+APPS += fib-mr-fj
+
+fib-mr-fj: clean fib-mr-fj.c fib-producer.o
+	$(CXX) $(FUTURE_CXXFLAGS) -c fib-mr-fj.c -o fib-mr-fj.o
+	$(CXX) -flto fib-mr-fj.o fib-producer.o -o fib-mr-fj $(FUTURE_LDFLAGS)
+
 
 ###########################################################################
 # Though shalt not cross this line lest thou knowest what thou art doing! #

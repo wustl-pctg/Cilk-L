@@ -38,7 +38,6 @@ void wrap_fib(int n) {
     int res = fib(n);
     printf("Res: %d\n", res);
 }
-#include <assert.h>
 void run_bench(int fd) {
     io_future_result io_res = { 0, 0};
     io_future fut;
