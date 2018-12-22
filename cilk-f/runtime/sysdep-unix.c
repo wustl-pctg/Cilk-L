@@ -270,8 +270,6 @@ static void write_version_file (global_state_t *, int);
 static void create_threads(global_state_t *g, int base, int top)
 {
     cpu_set_t mask;
-    int multiplier = 1;
-    //if (g->io_mode == IO_MODE__DEDICATED_CORE) multiplier = 2;
 
     // TBD(11/30/12): We want to insert code providing the option of
     // pinning system workers to cores.
@@ -284,20 +282,18 @@ static void create_threads(global_state_t *g, int base, int top)
             __cilkrts_bug("Cilk runtime error: thread creation (%d) failed: %d\n", i, status);
 
         CPU_ZERO(&mask);
-        CPU_SET(i*multiplier, &mask);
+        CPU_SET(i, &mask);
         status = pthread_setaffinity_np(g->sysdep->threads[i], sizeof(mask), &mask);
         if (status != 0)
-           __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", i, i*multiplier, status);
+           __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", i, i, status);
     }
 }
 
 static void create_io_threads(global_state_t *g, int base, int top)
 {
     cpu_set_t mask;
-    int multiplier = 1;
     int offset = 0;
     if (g->io_mode == IO_MODE__DEDICATED_CORE) {
-      //multiplier = 2;
       // TODO: Make this portable
       //       It appears as though the numbering is
       //       all the primary threads, then all the
@@ -317,10 +313,10 @@ static void create_io_threads(global_state_t *g, int base, int top)
             __cilkrts_bug("Cilk runtime error: io thread creation (%d) failed: %d\n", g->P + i, status);
 
         CPU_ZERO(&mask);
-        CPU_SET(i*multiplier + offset, &mask);
+        CPU_SET(i + offset, &mask);
         status = pthread_setaffinity_np(g->sysdep->threads[g->P + i], sizeof(mask), &mask);
         if (status != 0)
-           __cilkrts_bug("Cilk runtime error: io thread creation (%d) could not set affinity (%d): %d\n", g->P + i, i*multiplier + offset, status);
+           __cilkrts_bug("Cilk runtime error: io thread creation (%d) could not set affinity (%d): %d\n", g->P + i, i + offset, status);
     }
 }
 
@@ -371,11 +367,7 @@ void __cilkrts_start_workers(global_state_t *g, int n)
                 __cilkrts_bug("Cilk runtime error: thread creation (0) failed: %d\n", status);
 
             CPU_ZERO(&mask);
-            if (g->io_mode != IO_MODE__DEDICATED_CORE) {
-              CPU_SET(1, &mask);
-            } else {
-              CPU_SET(2, &mask);
-            }
+            CPU_SET(1, &mask);
             status = pthread_setaffinity_np(g->sysdep->threads[1], sizeof(mask), &mask);
             if (status != 0)
                __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", 1, 1, status);

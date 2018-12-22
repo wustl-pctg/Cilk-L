@@ -69,7 +69,7 @@ int run_bench(int start, int end) {
 }
 
 int main(void) {
-  cilk_spawn run_bench(0, 3000);
+  cilk_spawn run_bench(0, 30000);
   cilk_sync;
   return 0;
 }
