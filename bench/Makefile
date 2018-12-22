@@ -23,9 +23,6 @@ VANILLA_LDFLAGS  = ../cilk-f/.libs/libcilkrts.a $(COMMON_LDFLAGS)
 .PHONY: default all clean
 default: all
 
-fib-consumer.o: fib-consumer.c
-	$(CXX) $(FUTURE_CXXFLAGS) -c fib-consumer.c -o fib-consumer.o
-
 fib-producer.o: fib-producer.c
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-producer.c -o fib-producer.o
 
@@ -33,16 +30,16 @@ TARGETS = fib-l
 APPS = fib-l
 
 
-fib-l: clean fib-l.c fib-consumer.o fib-producer.o
+fib-l: clean fib-l.c fib-producer.o
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-l.c -o fib-l.o
-	$(CXX) -flto fib-l.o fib-consumer.o fib-producer.o -o fib-l $(FUTURE_LDFLAGS)
+	$(CXX) -flto fib-l.o fib-producer.o -o fib-l $(FUTURE_LDFLAGS)
 
 TARGETS += fib-fj
 APPS += fib-fj
 
-fib-fj: clean fib-fj.c fib-consumer.o fib-producer.o
+fib-fj: clean fib-fj.c fib-producer.o
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-fj.c -o fib-fj.o
-	$(CXX) -flto fib-fj.o fib-consumer.o fib-producer.o -o fib-fj $(FUTURE_LDFLAGS)
+	$(CXX) -flto fib-fj.o fib-producer.o -o fib-fj $(FUTURE_LDFLAGS)
 
 
 ###########################################################################

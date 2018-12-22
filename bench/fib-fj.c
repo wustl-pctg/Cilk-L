@@ -5,7 +5,6 @@
 
 #include <unistd.h>
 
-#include "fib-consumer.h"
 #include "fib-producer.h"
 
 static int serial_base_case = 2;
