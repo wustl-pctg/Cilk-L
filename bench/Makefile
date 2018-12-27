@@ -26,20 +26,20 @@ default: all
 fib-producer.o: fib-producer.c
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-producer.c -o fib-producer.o
 
-TARGETS = fib-l
-APPS = fib-l
+TARGETS = fib-srv-l
+APPS = fib-srv-l
 
 
-fib-l: clean fib-l.c fib-producer.o
-	$(CXX) $(FUTURE_CXXFLAGS) -c fib-l.c -o fib-l.o
-	$(CXX) -flto fib-l.o fib-producer.o -o fib-l $(FUTURE_LDFLAGS)
+fib-srv-l: clean fib-srv-l.c fib-producer.o
+	$(CXX) $(FUTURE_CXXFLAGS) -c fib-srv-l.c -o fib-srv-l.o
+	$(CXX) -flto fib-srv-l.o fib-producer.o -o fib-srv-l $(FUTURE_LDFLAGS)
 
-TARGETS += fib-fj
-APPS += fib-fj
+TARGETS += fib-srv-fj
+APPS += fib-srv-fj
 
-fib-fj: clean fib-fj.c fib-producer.o
-	$(CXX) $(FUTURE_CXXFLAGS) -c fib-fj.c -o fib-fj.o
-	$(CXX) -flto fib-fj.o fib-producer.o -o fib-fj $(FUTURE_LDFLAGS)
+fib-srv-fj: clean fib-srv-fj.c fib-producer.o
+	$(CXX) $(FUTURE_CXXFLAGS) -c fib-srv-fj.c -o fib-srv-fj.o
+	$(CXX) -flto fib-srv-fj.o fib-producer.o -o fib-srv-fj $(FUTURE_LDFLAGS)
 
 TARGETS += fib-mr-l
 APPS += fib-mr-l
