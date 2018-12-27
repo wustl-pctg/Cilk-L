@@ -32,37 +32,37 @@ fib.o: fib.c
 fib-producer.o: fib-producer.c
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-producer.c -o fib-producer.o
 
-fib-mr-options.o: fib-mr-options.c
-	$(CXX) $(FUTURE_CXXFLAGS) -c fib-mr-options.c -o fib-mr-options.o
+fib-options.o: fib-options.c
+	$(CXX) $(FUTURE_CXXFLAGS) -c fib-options.c -o fib-options.o
 
 TARGETS = fib-srv-l
 APPS = fib-srv-l
 
 
-fib-srv-l: clean fib-srv-l.c fib.o fib-producer.o
+fib-srv-l: clean fib-srv-l.c fib.o fib-producer.o getoptions.o fib-options.o
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-srv-l.c -o fib-srv-l.o
-	$(CXX) -flto fib-srv-l.o fib.o fib-producer.o -o fib-srv-l $(FUTURE_LDFLAGS)
+	$(CXX) -flto fib-srv-l.o fib.o fib-producer.o getoptions.o fib-options.o -o fib-srv-l $(FUTURE_LDFLAGS)
 
 TARGETS += fib-srv-fj
 APPS += fib-srv-fj
 
-fib-srv-fj: clean fib-srv-fj.c fib.o fib-producer.o
+fib-srv-fj: clean fib-srv-fj.c fib.o fib-producer.o getoptions.o fib-options.o
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-srv-fj.c -o fib-srv-fj.o
-	$(CXX) -flto fib-srv-fj.o fib.o fib-producer.o -o fib-srv-fj $(FUTURE_LDFLAGS)
+	$(CXX) -flto fib-srv-fj.o fib.o fib-producer.o getoptions.o fib-options.o -o fib-srv-fj $(FUTURE_LDFLAGS)
 
 TARGETS += fib-mr-l
 APPS += fib-mr-l
 
-fib-mr-l: clean fib-mr-l.c fib.o fib-producer.o getoptions.o fib-mr-options.o
+fib-mr-l: clean fib-mr-l.c fib.o fib-producer.o getoptions.o fib-options.o
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-mr-l.c -o fib-mr-l.o
-	$(CXX) -flto fib-mr-l.o fib.o fib-producer.o getoptions.o fib-mr-options.o -o fib-mr-l $(FUTURE_LDFLAGS)
+	$(CXX) -flto fib-mr-l.o fib.o fib-producer.o getoptions.o fib-options.o -o fib-mr-l $(FUTURE_LDFLAGS)
 
 TARGETS += fib-mr-fj
 APPS += fib-mr-fj
 
-fib-mr-fj: clean fib-mr-fj.c fib.o fib-producer.o getoptions.o fib-mr-options.o
+fib-mr-fj: clean fib-mr-fj.c fib.o fib-producer.o getoptions.o fib-options.o
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-mr-fj.c -o fib-mr-fj.o
-	$(CXX) -flto fib-mr-fj.o fib.o fib-producer.o getoptions.o fib-mr-options.o -o fib-mr-fj $(FUTURE_LDFLAGS)
+	$(CXX) -flto fib-mr-fj.o fib.o fib-producer.o getoptions.o fib-options.o -o fib-mr-fj $(FUTURE_LDFLAGS)
 
 
 ###########################################################################

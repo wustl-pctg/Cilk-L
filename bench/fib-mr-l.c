@@ -8,7 +8,7 @@
 
 #include "fib.h"
 #include "fib-producer.h"
-#include "fib-mr-options.h"
+#include "fib-options.h"
 
 #include <inttypes.h>
 
@@ -48,7 +48,7 @@ int run_bench(int start, int end) {
 }
 
 int main(int argc, char *args[]) {
-  load_fib_mr_options(argc, args);
+  load_fib_options(argc, args);
 
   cilk_spawn run_bench(0, fib_count);
   cilk_sync;

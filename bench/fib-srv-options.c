@@ -21,7 +21,6 @@ void load_fib_mr_options(int argc, char *argv[]) {
   int def_io_delay = io_delay;
   int def_nruns = nruns;
 
-
   get_options(argc, argv, specifiers, opt_types, &fib_n, &serial_base_case, &fib_count, &io_delay, &nruns, &help);
 
   if (help) {

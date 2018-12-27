@@ -8,64 +8,40 @@
 
 #include "fib.h"
 #include "fib-producer.h"
+#include "fib-options.h"
+
+int fib_n = 30;
+int fib_count = 3000;
+int io_delay = 50000;
+int nruns = 1;
 
 void run_bench(int fd) {
     io_future_result io_res = { 0, 0};
     io_future fut;
     uint64_t in_buf;
-    volatile int val = 30;
-    //do {
-    for (int i = 0; i < 3000; ) {
+
+    for (int i = 0; i < fib_count; ) {
         fut = cilk_read(fd, &in_buf, sizeof(uint64_t));
         io_res = cilk_iosync(&fut);
 
-        //if (io_res.ret_val <= 0) {
-        //  assert(in_buf[0] == 'q');
-          //fprintf(stderr, "ERROR READING INPUT: %s\n", strerror(io_res.errno_val));
-          //exit(1);
-        //} else {
-        //    in_buf[io_res.ret_val] = 0;
-        //}
-
-        //val = atoi(in_buf);
-        //if (val != 0) {
-        for (uint64_t j = 0; j < in_buf && i < 3000; j++) {
+        for (uint64_t j = 0; j < in_buf && i < fib_count; j++) {
           i++;
-          cilk_spawn wrap_fib(val);
+          cilk_spawn wrap_fib(fib_n);
         }
-        //}
-
-        //assert(io_res.ret_val != 0);
     }
-    //} while(in_buf[0] != 'q');
 }
 
 int main(int argc, char *args[]) {
-    int recv_fd = create_producer(5000);
+    load_fib_options(argc, args);
 
-    //int recv_fd = open_consumer();
+    int recv_fd = create_producer(io_delay);
+
     int saved_flags = fcntl(recv_fd, F_GETFL);
     fcntl(recv_fd, F_SETFL, saved_flags | O_NONBLOCK);
-
-    //int recvd = 0;
-
-    //char tmp[512];
-
-    /*do {
-        recvd = read(recv_fd, tmp, 511);
-        if (recvd == -1) {
-            printf("Would have blocked!\n");
-        }
-    } while (recvd == -1);
-
-    tmp[recvd] = 0;
-    printf("Got %s\n", tmp);
-    */
 
     cilk_spawn run_bench(recv_fd);
     cilk_sync;
 
-    //join_producer(&prod_args);
     close(recv_fd);
 
     return 0;
