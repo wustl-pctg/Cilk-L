@@ -23,7 +23,7 @@ void run_bench(int fd) {
     }
 }
 
-int main(void) {
+int main(int argc, char *args[]) {
     int recv_fd = create_producer(5000);
 
     cilk_spawn run_bench(recv_fd);

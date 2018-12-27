@@ -8,20 +8,26 @@
 
 #include "fib.h"
 #include "fib-producer.h"
+#include "fib-mr-options.h"
 
 #include <inttypes.h>
 
 #include <stdio.h>
 
+int fib_n = 30;
+int fib_count = 30000;
+int io_delay = 50000;
+int nruns = 1;
+
 int getValue(int unused) {
   uint64_t in_buf;
-  int prod_fd = create_producer(50000);
+  int prod_fd = create_producer(io_delay);
   int saved_flags = fcntl(prod_fd, F_GETFL);
   fcntl(prod_fd, F_SETFL, saved_flags | O_NONBLOCK);
   io_future f = cilk_read(prod_fd, &in_buf, sizeof(uint64_t));
   cilk_iosync(&f);
   close(prod_fd);
-  return 30;
+  return fib_n;
 }
 
 int run_bench(int start, int end) {
@@ -41,8 +47,10 @@ int run_bench(int start, int end) {
   }
 }
 
-int main(void) {
-  cilk_spawn run_bench(0, 30000);
+int main(int argc, char *args[]) {
+  load_fib_mr_options(argc, args);
+
+  cilk_spawn run_bench(0, fib_count);
   cilk_sync;
   return 0;
 }

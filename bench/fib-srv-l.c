@@ -40,7 +40,7 @@ void run_bench(int fd) {
     //} while(in_buf[0] != 'q');
 }
 
-int main(void) {
+int main(int argc, char *args[]) {
     int recv_fd = create_producer(5000);
 
     //int recv_fd = open_consumer();

@@ -23,11 +23,17 @@ VANILLA_LDFLAGS  = ../cilk-f/.libs/libcilkrts.a $(COMMON_LDFLAGS)
 .PHONY: default all clean
 default: all
 
+getoptions.o: getoptions.cpp
+	$(CXX) $(FUTURE_CXXFLAGS) -c getoptions.cpp -o getoptions.o
+
 fib.o: fib.c
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib.c -o fib.o
 
 fib-producer.o: fib-producer.c
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-producer.c -o fib-producer.o
+
+fib-mr-options.o: fib-mr-options.c
+	$(CXX) $(FUTURE_CXXFLAGS) -c fib-mr-options.c -o fib-mr-options.o
 
 TARGETS = fib-srv-l
 APPS = fib-srv-l
@@ -47,16 +53,16 @@ fib-srv-fj: clean fib-srv-fj.c fib.o fib-producer.o
 TARGETS += fib-mr-l
 APPS += fib-mr-l
 
-fib-mr-l: clean fib-mr-l.c fib.o fib-producer.o
+fib-mr-l: clean fib-mr-l.c fib.o fib-producer.o getoptions.o fib-mr-options.o
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-mr-l.c -o fib-mr-l.o
-	$(CXX) -flto fib-mr-l.o fib.o fib-producer.o -o fib-mr-l $(FUTURE_LDFLAGS)
+	$(CXX) -flto fib-mr-l.o fib.o fib-producer.o getoptions.o fib-mr-options.o -o fib-mr-l $(FUTURE_LDFLAGS)
 
 TARGETS += fib-mr-fj
 APPS += fib-mr-fj
 
-fib-mr-fj: clean fib-mr-fj.c fib.o fib-producer.o
+fib-mr-fj: clean fib-mr-fj.c fib.o fib-producer.o getoptions.o fib-mr-options.o
 	$(CXX) $(FUTURE_CXXFLAGS) -c fib-mr-fj.c -o fib-mr-fj.o
-	$(CXX) -flto fib-mr-fj.o fib.o fib-producer.o -o fib-mr-fj $(FUTURE_LDFLAGS)
+	$(CXX) -flto fib-mr-fj.o fib.o fib-producer.o getoptions.o fib-mr-options.o -o fib-mr-fj $(FUTURE_LDFLAGS)
 
 
 ###########################################################################
