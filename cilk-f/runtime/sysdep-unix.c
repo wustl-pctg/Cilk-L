@@ -282,10 +282,10 @@ static void create_threads(global_state_t *g, int base, int top)
             __cilkrts_bug("Cilk runtime error: thread creation (%d) failed: %d\n", i, status);
 
         CPU_ZERO(&mask);
-        CPU_SET(i, &mask);
+        CPU_SET(i%80, &mask);
         status = pthread_setaffinity_np(g->sysdep->threads[i], sizeof(mask), &mask);
         if (status != 0)
-           __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", i, i, status);
+           __cilkrts_bug("Cilk runtime error: thread creation (%d) could not set affinity (%d): %d\n", i, i%80, status);
     }
 }
 
@@ -313,10 +313,10 @@ static void create_io_threads(global_state_t *g, int base, int top)
             __cilkrts_bug("Cilk runtime error: io thread creation (%d) failed: %d\n", g->P + i, status);
 
         CPU_ZERO(&mask);
-        CPU_SET(i + offset, &mask);
+        CPU_SET((i + offset)%80, &mask);
         status = pthread_setaffinity_np(g->sysdep->threads[g->P + i], sizeof(mask), &mask);
         if (status != 0)
-           __cilkrts_bug("Cilk runtime error: io thread creation (%d) could not set affinity (%d): %d\n", g->P + i, i + offset, status);
+           __cilkrts_bug("Cilk runtime error: io thread creation (%d) could not set affinity (%d): %d\n", g->P + i, (i + offset)%80, status);
     }
 }
 
