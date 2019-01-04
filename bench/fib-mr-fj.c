@@ -8,10 +8,14 @@
 #include "fib.h"
 #include "fib-producer.h"
 #include "fib-options.h"
+#include "ktiming.h"
 
 #include <inttypes.h>
+#include <malloc.h>
 
 #include <stdio.h>
+
+#define m_fib_func  fib
 
 int fib_n = 30;
 int fib_count = 30000;
@@ -32,7 +36,7 @@ int run_bench(int start, int end) {
     return 0;
   } else if (n == 1) {
     int x = getValue(start);
-    return wrap_fib(x);
+    return m_fib_func(x);
   } else {
     int piv = (start + end) / 2;
     int res1 = 0;
@@ -46,7 +50,23 @@ int run_bench(int start, int end) {
 int main(int argc, char *args[]) {
   load_fib_options(argc, args);
 
-  cilk_spawn run_bench(0, fib_count);
-  cilk_sync;
+  uint64_t *running_times = (uint64_t*)malloc(nruns*sizeof(uint64_t));
+  clockmark_t begin, end;
+
+  for (int i = 0; i < nruns; i++) {
+    begin = ktiming_getmark();
+    cilk_spawn run_bench(0, fib_count);
+    cilk_sync;
+    end = ktiming_getmark();
+    running_times[i] = ktiming_diff_usec(&begin, &end);
+  }
+
+  if(nruns > 10) 
+    print_runtime_summary(running_times, nruns); 
+  else 
+    print_runtime(running_times, nruns); 
+
+  free(running_times);
+
   return 0;
 }

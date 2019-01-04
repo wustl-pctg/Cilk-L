@@ -609,7 +609,7 @@ global_state_t* cilkg_init_global_state()
         g->fiber_high_watermark = 0;
     #endif
 	g->workers_running = 0;
-	g->ltqsize = 1024;//128; /* FIXME */ // Originally 1024
+	g->ltqsize = 4096;//128; /* FIXME */ // Originally 1024
 
 	g->stack_size = cilkos_validate_stack_size(g->stack_size);
 	g->failure_to_allocate_stack = 0;
