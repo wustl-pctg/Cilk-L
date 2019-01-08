@@ -1,9 +1,5 @@
-#include <cilk/cilk.h>
-#include <cilk/cilk_io.h>
-
 #include <string.h>
 
-#include <fcntl.h>
 #include <unistd.h>
 
 #include "fib.h"
@@ -14,7 +10,7 @@
 #include <inttypes.h>
 #include <malloc.h>
 
-#define m_fib_func  fib
+#define m_fib_func  serial_fib
 
 int fib_n = 30;
 int fib_count = 3000;
@@ -22,15 +18,12 @@ int io_delay = 50000;
 int nruns = 1;
 
 void run_bench(int fd, int depth) {
-    io_future_result io_res = { 0, 0};
-    io_future fut;
     uint64_t in_buf;
 
-
-    fut = cilk_read(fd, &in_buf, sizeof(uint64_t));
-    io_res = cilk_iosync(&fut);
+    read(fd, &in_buf, sizeof(uint64_t));
     if (depth >= fib_count) return;
-    cilk_spawn run_bench(fd, depth+1);
+    run_bench(fd, depth+1);
+
     m_fib_func(fib_n);
 }
 
@@ -45,11 +38,7 @@ int main(int argc, char *args[]) {
 
         int recv_fd = create_producer(io_delay);
 
-        int saved_flags = fcntl(recv_fd, F_GETFL);
-        fcntl(recv_fd, F_SETFL, saved_flags | O_NONBLOCK);
-
-        cilk_spawn run_bench(recv_fd, 0);
-        cilk_sync;
+        run_bench(recv_fd, 0);
 
         close(recv_fd);
 

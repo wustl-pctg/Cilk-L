@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 
-int serial_base_case = 2;
+int serial_base_case = 15;
 
 int serial_fib(int n) {
     if (n < 2) {

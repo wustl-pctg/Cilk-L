@@ -420,7 +420,7 @@ global_state_t* cilkg_get_user_settable_values()
 			g->force_reduce             = 0;   // Default Off
       // TODO: Probably ought to default to NORMAL or SHARED_CORE
       //g->io_mode                  = IO_MODE__SHARED_CORE;
-      g->io_mode                  = IO_MODE__DEDICATED_CORE;
+      g->io_mode                  = IO_MODE__SHARED_CORE;
 			g->P                        = hardware_cpu_count;   // Defaults to hardware CPU count
 			g->max_user_workers         = 0;   // 0 unless set by user
 			g->fiber_pool_size          = 64;   // Arbitrary default
@@ -609,7 +609,7 @@ global_state_t* cilkg_init_global_state()
         g->fiber_high_watermark = 0;
     #endif
 	g->workers_running = 0;
-	g->ltqsize = 4096;//128; /* FIXME */ // Originally 1024
+	g->ltqsize = 8192;//4096;//128; /* FIXME */ // Originally 1024
 
 	g->stack_size = cilkos_validate_stack_size(g->stack_size);
 	g->failure_to_allocate_stack = 0;

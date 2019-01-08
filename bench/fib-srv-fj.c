@@ -23,9 +23,8 @@ int nruns = 1;
 void run_bench(int fd, int depth) {
     uint64_t in_buf;
 
-    if (depth >= fib_count) return;
-
     read(fd, &in_buf, sizeof(uint64_t));
+    if (depth >= fib_count) return;
     cilk_spawn run_bench(fd, depth+1);
 
     m_fib_func(fib_n);

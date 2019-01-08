@@ -28,13 +28,13 @@ int nruns = 1;
  * fib 44: 701408733
  * fib 45: 1134903170
  */
-int run_bench(void) {
+int __attribute__((noinline)) run_bench(void) {
     return m_fib_func(fib_n);
 }
 
 int main(int argc, char *args[]) {
     load_fib_options(argc, args);
-    int res;
+    int res = 0;
 
     uint64_t *running_times = (uint64_t*)malloc(nruns*sizeof(uint64_t));
     clockmark_t begin, end;

@@ -26,11 +26,11 @@ void run_bench(int fd, int depth) {
     io_future fut;
     uint64_t in_buf;
 
+    if (depth >= fib_count) return;
 
     fut = cilk_read(fd, &in_buf, sizeof(uint64_t));
-    io_res = cilk_iosync(&fut);
-    if (depth >= fib_count) return;
     cilk_spawn run_bench(fd, depth+1);
+    io_res = cilk_iosync(&fut);
     m_fib_func(fib_n);
 }
 

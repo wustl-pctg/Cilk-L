@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <errno.h>
+#include <sys/epoll.h>
+#include <string.h>
 
 #include "cilk-io-queue.h"
 #include "local_state.h"
@@ -26,6 +28,16 @@ io_future cilk_read(int fildes, void *buf, size_t nbyte) {
     };
     io_queue_push(self->l->io_queue, &op);
   } else {
+
+    int epoll_fd = epoll_create(1);
+    struct epoll_event event;
+    memset((void*)&event, 0, sizeof(event));
+    event.data.fd = fildes;
+    event.events = EPOLLIN;
+    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fildes, &event);
+    epoll_wait(epoll_fd, &event, 1, -1);
+    close(epoll_fd);
+
     io_future_result res;
     res.ret_val = syscall(SYS_read, fildes, buf, nbyte);
     res.errno_val = errno;
@@ -52,6 +64,15 @@ io_future cilk_write(int fildes, void *buf, size_t nbyte) {
 
     io_queue_push(self->l->io_queue, &op);
   } else {
+    int epoll_fd = epoll_create(1);
+    struct epoll_event event;
+    memset((void*)&event, 0, sizeof(event));
+    event.data.fd = fildes;
+    event.events = EPOLLOUT;
+    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fildes, &event);
+    epoll_wait(epoll_fd, &event, 1, -1);
+    close(epoll_fd);
+
     io_future_result res;
     res.ret_val = syscall(SYS_write, fildes, buf, nbyte);
     res.errno_val = errno;
