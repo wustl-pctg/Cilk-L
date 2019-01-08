@@ -25,6 +25,10 @@ void make_worker_io(__cilkrts_worker *w) {
     w->l->io_queue = new_io_queue();
 }
 
+static void add_to_epoll() {
+
+}
+
 static int perform_io_until_block(const int &syscall_no, io_op_t &op) {
     int res;
     int orig_nbytes = op.nbyte;
@@ -148,6 +152,8 @@ void scheduler_thread_proc_for_io_worker(void* arg) {
                                 .events = EPOLLIN | EPOLLET
                             };
                             epoll_ctl(epoll_fd, EPOLL_CTL_ADD, curr_op.fildes, &event);
+                            // Double check; edge triggering is tricky
+                            handle_event(SYS_read, curr_op.fildes, blocked_ops[curr_op.fildes].first, blocked_read_fds, ready_read_fds);
                         }
                     }
                 }
@@ -170,6 +176,8 @@ void scheduler_thread_proc_for_io_worker(void* arg) {
                                 .events = EPOLLOUT | EPOLLET
                             };
                             epoll_ctl(epoll_fd, EPOLL_CTL_ADD, curr_op.fildes, &event);
+                            // Double check; edge triggering is tricky
+                            handle_event(SYS_write, curr_op.fildes, blocked_ops[curr_op.fildes].second, blocked_write_fds, ready_write_fds);
                         }
                     }
                 }
