@@ -25,7 +25,7 @@ int nruns = 5;
 
 int getValue(int unused) {
   uint64_t in_buf;
-  int prod_fd = create_producer(io_delay);
+  int prod_fd = create_oneshot_producer(io_delay);
   int saved_flags = fcntl(prod_fd, F_GETFL);
   fcntl(prod_fd, F_SETFL, saved_flags | O_NONBLOCK);
   io_future f = cilk_read(prod_fd, &in_buf, sizeof(uint64_t));
@@ -58,12 +58,10 @@ int main(int argc, char *args[]) {
   clockmark_t begin, end;
 
   for (int i = 0; i < nruns; i++) {
-    printf("Start %d\n", i);
     begin = ktiming_getmark();
     cilk_spawn run_bench(0, fib_count);
     cilk_sync;
     end = ktiming_getmark();
-    printf("End %d\n", i);
     running_times[i] = ktiming_diff_usec(&begin, &end);
   }
 

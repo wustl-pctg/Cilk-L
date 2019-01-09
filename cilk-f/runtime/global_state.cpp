@@ -419,8 +419,9 @@ global_state_t* cilkg_get_user_settable_values()
 			g->under_ptool              = under_ptool;
 			g->force_reduce             = 0;   // Default Off
       // TODO: Probably ought to default to NORMAL or SHARED_CORE
+      g->io_mode                  = IO_MODE__DEDICATED_CORE;
       //g->io_mode                  = IO_MODE__SHARED_CORE;
-      g->io_mode                  = IO_MODE__SHARED_CORE;
+      //g->io_mode                  = IO_MODE__NORMAL;
 			g->P                        = hardware_cpu_count;   // Defaults to hardware CPU count
 			g->max_user_workers         = 0;   // 0 unless set by user
 			g->fiber_pool_size          = 64;   // Arbitrary default

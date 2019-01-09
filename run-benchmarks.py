@@ -75,6 +75,9 @@ def main():
             if ('se' in bench):
                 ncores = 1
 
+            if (ncores == 80 and 'l' in bench):
+                continue
+
             times = list()
             avg = None
             stdev = None

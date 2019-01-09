@@ -9,7 +9,7 @@ typedef struct producer_args_t {
 } producer_args_t;
 
 int create_producer(int usec_timeout);
-void join_producer(producer_args_t *args);
+int create_oneshot_producer(int usec_timeout);
 
 //void producer_thread_func(void *args);
 

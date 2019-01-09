@@ -24,7 +24,7 @@ int nruns = 1;
 
 int getValue(int unused) {
   uint64_t in_buf;
-  int prod_fd = create_producer(io_delay);
+  int prod_fd = create_oneshot_producer(io_delay);
   read(prod_fd, &in_buf, sizeof(uint64_t));
   close(prod_fd);
   return fib_n;
