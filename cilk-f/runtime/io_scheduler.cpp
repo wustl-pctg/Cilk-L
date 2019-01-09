@@ -25,10 +25,6 @@ void make_worker_io(__cilkrts_worker *w) {
     w->l->io_queue = new_io_queue();
 }
 
-static void add_to_epoll() {
-
-}
-
 static int perform_io_until_block(const int &syscall_no, io_op_t &op) {
     int res;
     int orig_nbytes = op.nbyte;
@@ -112,27 +108,25 @@ void scheduler_thread_proc_for_io_worker(void* arg) {
           __cilkrts_bug("epoll_wait returned an error (%s)\n", strerror(errno));
       }
       for (int i = 0; i < num_triggered; i++) {
-          if (triggered_events[i].data.fd == self->l->io_queue->eventfd) {
+          int fd = triggered_events[i].data.fd;
+          if (fd == self->l->io_queue->eventfd) {
             check_queue = true;
             continue;
           }
           if (triggered_events[i].events & EPOLLIN) {
-              int fd = triggered_events[i].data.fd;
               handle_event(SYS_read, fd, blocked_ops[fd].first, blocked_read_fds, ready_read_fds);
           }
           if (triggered_events[i].events & EPOLLOUT) {
-              int fd = triggered_events[i].data.fd;
               handle_event(SYS_write, fd, blocked_ops[fd].second, blocked_write_fds, ready_write_fds);
           }
       }
 
     if (check_queue) {
         check_queue = false;
-        //int val = 0;
-        //syscall(SYS_read, self->l->io_queue->eventfd, &val, 8);
 
         do {
             curr_op = io_queue_pop(self->l->io_queue);
+
             if (curr_op.type == IOTYPE__READ) {
                 if (blocked_read_fds.count(curr_op.fildes)) {
                     blocked_ops[curr_op.fildes].first.emplace_back(std::move(curr_op));
@@ -140,11 +134,10 @@ void scheduler_thread_proc_for_io_worker(void* arg) {
                     ret_val = perform_io_until_block(SYS_read, curr_op);
                     // If we would have blocked
                     if (ret_val) {
-                        if (ready_read_fds.count(curr_op.fildes)) {
-                            blocked_read_fds.emplace(curr_op.fildes);
+                            // NOTE: We could have the same file descriptor as a now closed file!
+                            //       We will go ahead and add ourselves to epoll again
+                            //       (if we are already tracked, we don't get inserted twice)
                             ready_read_fds.erase(curr_op.fildes);
-                            blocked_ops[curr_op.fildes].first.emplace_back(std::move(curr_op));
-                        } else {
                             blocked_read_fds.emplace(curr_op.fildes);
                             blocked_ops[curr_op.fildes].first.emplace_back(std::move(curr_op));
                             event = {
@@ -152,9 +145,6 @@ void scheduler_thread_proc_for_io_worker(void* arg) {
                                 .events = EPOLLIN | EPOLLET
                             };
                             epoll_ctl(epoll_fd, EPOLL_CTL_ADD, curr_op.fildes, &event);
-                            // Double check; edge triggering is tricky
-                            handle_event(SYS_read, curr_op.fildes, blocked_ops[curr_op.fildes].first, blocked_read_fds, ready_read_fds);
-                        }
                     }
                 }
             } else if (curr_op.type == IOTYPE__WRITE) {
@@ -164,11 +154,10 @@ void scheduler_thread_proc_for_io_worker(void* arg) {
                     ret_val = perform_io_until_block(SYS_write, curr_op);
                     // If we would have blocked
                     if (ret_val) {
-                        if (ready_write_fds.count(curr_op.fildes)) {
-                            blocked_write_fds.emplace(curr_op.fildes);
+                            // NOTE: We could have the same file descriptor as a now closed file!
+                            //       We will go ahead and add ourselves to epoll again
+                            //       (if we are already tracked, we don't get inserted twice)
                             ready_write_fds.erase(curr_op.fildes);
-                            blocked_ops[curr_op.fildes].second.emplace_back(std::move(curr_op));
-                        } else {
                             blocked_write_fds.emplace(curr_op.fildes);
                             blocked_ops[curr_op.fildes].second.emplace_back(std::move(curr_op));
                             event = {
@@ -176,9 +165,6 @@ void scheduler_thread_proc_for_io_worker(void* arg) {
                                 .events = EPOLLOUT | EPOLLET
                             };
                             epoll_ctl(epoll_fd, EPOLL_CTL_ADD, curr_op.fildes, &event);
-                            // Double check; edge triggering is tricky
-                            handle_event(SYS_write, curr_op.fildes, blocked_ops[curr_op.fildes].second, blocked_write_fds, ready_write_fds);
-                        }
                     }
                 }
             }

@@ -19,9 +19,9 @@
 #define m_fib_func  fib
 
 int fib_n = 30;
-int fib_count = 30000;
+int fib_count = 5000;
 int io_delay = 50000;
-int nruns = 1;
+int nruns = 5;
 
 int getValue(int unused) {
   uint64_t in_buf;
@@ -58,10 +58,12 @@ int main(int argc, char *args[]) {
   clockmark_t begin, end;
 
   for (int i = 0; i < nruns; i++) {
+    printf("Start %d\n", i);
     begin = ktiming_getmark();
     cilk_spawn run_bench(0, fib_count);
     cilk_sync;
     end = ktiming_getmark();
+    printf("End %d\n", i);
     running_times[i] = ktiming_diff_usec(&begin, &end);
   }
 
