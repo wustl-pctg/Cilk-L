@@ -1,3 +1,3 @@
 #!/bin/sh
 
-docker build -t cilk-f-lat:latest .
+docker build -t cilk-f-lat:latest container-src

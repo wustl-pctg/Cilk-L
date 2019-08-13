@@ -4,6 +4,7 @@ RUN apt-get update \
     && apt-get install -y \
       g++ \
       gcc \
+      libgoogle-perftools-dev \
       make \
       automake \
       libtool \
