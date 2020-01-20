@@ -9,4 +9,4 @@ fi
 
 #docker run -u=$UID:$(id -g $USER) -it --security-opt seccomp=unconfined --rm --mount src=/"$(pwd)",target=/mnt/cilk-plus-futures,type=bind -w=/mnt/cilk-plus-futures  -e LD_LIBRARY_PATH=/mnt/cilk-plus-futures/SuperMalloc/release/lib cilkfut
 
-docker run -u=$UID:$(id -g $USER) -it --security-opt seccomp=unconfined --rm -v$(pwd):/mnt/cilk-plus-futures -w=/mnt/cilk-plus-futures  -e LD_LIBRARY_PATH=/mnt/cilk-plus-futures/SuperMalloc/release/lib cilk-f-lat
+docker run -u=$UID:$(id -g $USER) -it --security-opt seccomp=unconfined --rm -v$(pwd):/mnt/cilk-plus-futures -w=/mnt/cilk-plus-futures  -e LD_LIBRARY_PATH=/mnt/cilk-plus-futures/SuperMalloc/release/lib cilk-l

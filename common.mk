@@ -9,8 +9,8 @@ LDFLAGS = -ldl -lpthread -L$(BASE_DIR)/SuperMalloc/release/lib -lsupermalloc
 ARFLAGS = rcs
 OPT = -O3 #-march=native -DNDEBUG
 
-CILKF_A = $(BASE_DIR)/cilk-f/.libs/libcilkrts.a
-CILKPLUS_A = $(BASE_DIR)/cilk-f/.libs/libcilkrts.a
+CILKF_A = $(BASE_DIR)/cilk-l/.libs/libcilkrts.a
+CILKPLUS_A = $(BASE_DIR)/cilk-l/.libs/libcilkrts.a
 
 CFLAGS = -g -Wfatal-errors $(INC)
 CILKFLAGS = -fcilkplus -fcilk-no-inline

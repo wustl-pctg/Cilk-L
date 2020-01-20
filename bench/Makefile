@@ -14,10 +14,10 @@ include ../common.mk
 COMMON_CXXFLAGS = -DTIMES_TO_RUN=10 -DTIMING_COUNT=10 -O3 -flto -g -fcilkplus -fno-omit-frame-pointer -fcilk-no-inline -I../src -I../llvm-cilk/include -std=c++11 -Wall
 COMMON_LDFLAGS  = ktiming.o -L$(mkfile_dir)/../SuperMalloc/release/lib -lsupermalloc -lrt -ldl -lpthread -lnuma -lpthread -lm -lrt
 
-FUTURE_CXXFLAGS = $(COMMON_CXXFLAGS) -I../cilk-f/runtime/config/x86 -I../cilk-f/runtime/sslib -I../cilk-f/include
+FUTURE_CXXFLAGS = $(COMMON_CXXFLAGS) -I../cilk-l/runtime/config/x86 -I../cilk-l/runtime/sslib -I../cilk-l/include
 FUTURE_LDFLAGS 	= $(CILKF_A) $(COMMON_LDFLAGS) 
 
-VANILLA_CXXFLAGS = $(COMMON_CXXFLAGS) -I../cilk-f/runtime/config/x86 -I../cilk-f/runtime/sslib -I../cilk-f/include
+VANILLA_CXXFLAGS = $(COMMON_CXXFLAGS) -I../cilk-l/runtime/config/x86 -I../cilk-l/runtime/sslib -I../cilk-l/include
 VANILLA_LDFLAGS  = $(CILKPLUS_A) $(COMMON_LDFLAGS) 
 
 .PHONY: default all clean

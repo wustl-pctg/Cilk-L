@@ -418,10 +418,21 @@ global_state_t* cilkg_get_user_settable_values()
 			g->stealing_disabled        = stealing_disabled;
 			g->under_ptool              = under_ptool;
 			g->force_reduce             = 0;   // Default Off
-      // TODO: Probably ought to default to NORMAL or SHARED_CORE
-      g->io_mode                  = IO_MODE__DEDICATED_CORE;
-      //g->io_mode                  = IO_MODE__SHARED_CORE;
+      // TODO: Probably ought to default to NORMAL or SHARED_CORE for IO
+      
+      // With IO_MODE__DEDICATED core, the system assumes hyperthreading
+      // is enabled, there are 2 threads per core; the number of workers
+      // is thus split in half
+      //g->io_mode                  = IO_MODE__DEDICATED_CORE;
+      
+      // With IO_MODE__SHARED_CORE, the I/O thread and work thread are
+      // associated with the same CPU core
+      g->io_mode                  = IO_MODE__SHARED_CORE;
+
+      // With IO_MODE__NORMAL, there are no I/O threads; cilk_read et. al.
+      // block the current worker and latency is not hidden
       //g->io_mode                  = IO_MODE__NORMAL;
+      
 			g->P                        = hardware_cpu_count;   // Defaults to hardware CPU count
 			g->max_user_workers         = 0;   // 0 unless set by user
 			g->fiber_pool_size          = 64;   // Arbitrary default

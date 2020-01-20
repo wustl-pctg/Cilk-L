@@ -42,7 +42,7 @@ make
 cd -
 
 # # Build the runtime (ability to suspend/resume deques)
-cd ./cilk-f
+cd ./cilk-l
 libtoolize
 autoreconf -i
 ./remake.sh opt lto
@@ -53,7 +53,7 @@ msg "Suspendable work-stealing runtime built"
 BASE_DIR=$(pwd)
 if [ ! -e config.mk ]; then
     echo "BUILD_DIR=$BASE_DIR/build" >> config.mk
-    echo "RUNTIME_HOME=$BASE_DIR/cilk-f" >> config.mk
+    echo "RUNTIME_HOME=$BASE_DIR/cilk-l" >> config.mk
     echo "COMPILER_HOME=$BASE_DIR/llvm-cilk" >> config.mk
     echo "RTS_LIB=\$(COMPILER_HOME)/lib/libcilkrts.a" >> config.mk
     echo "LTO=$LTO" >> config.mk
