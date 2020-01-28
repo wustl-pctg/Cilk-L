@@ -1,3 +1,5 @@
+The runtime implementation of "Scheduling I/O Latency-Hiding Futures in Task-Parallel Platforms" by Kyle Singer, I-Ting Angelina Lee, and Kunal Agrawal (https://doi.org/10.1137/1.9781611976021.11).
+
 In this version of Cilk-L, the default configuration is that I/O threads and work threads are bound to the same logical CPU core.
 In the corresponding paper, the configuration is such that I/O threads and work threads are bound to the same physical CPU, but
 such that the work thread is on one hyperthread (logical CPU on the same physical core) and the I/O thread is on the other hyperthread.
